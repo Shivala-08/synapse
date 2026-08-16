@@ -8,16 +8,29 @@ from src.config import settings
 _tokenizer = None
 
 
+class SimpleWordTokenizer:
+    """Fallback tokenizer using word boundaries when transformers is unavailable."""
+    def encode(self, text: str, add_special_tokens: bool = False) -> list:
+        return text.split()
+
+    def decode(self, tokens: list, clean_up_tokenization_spaces: bool = True) -> str:
+        return " ".join(tokens)
+
+
 def get_tokenizer():
-    """Lazy load tokenizer corresponding to the embedding model."""
+    """Lazy load tokenizer corresponding to the embedding model, with fallback."""
     global _tokenizer
     if _tokenizer is None:
-        from transformers import AutoTokenizer
-        model_name = settings.embedding_model
-        if "/" not in model_name:
-            model_name = f"sentence-transformers/{model_name}"
-        logger.info(f"Loading chunker tokenizer: {model_name}")
-        _tokenizer = AutoTokenizer.from_pretrained(model_name)
+        try:
+            from transformers import AutoTokenizer
+            model_name = settings.embedding_model
+            if "/" not in model_name:
+                model_name = f"sentence-transformers/{model_name}"
+            logger.info(f"Loading chunker tokenizer: {model_name}")
+            _tokenizer = AutoTokenizer.from_pretrained(model_name)
+        except Exception as e:
+            logger.warning(f"Could not load Hugging Face tokenizer ({e}). Falling back to simple word tokenizer.")
+            _tokenizer = SimpleWordTokenizer()
     return _tokenizer
 
 
