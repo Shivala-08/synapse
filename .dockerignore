@@ -15,7 +15,6 @@ package-lock.json
 package.json
 Dockerfile
 .dockerignore
-docker-entrypoint.sh
 task.md
 implementation_plan.md
 walkthrough.md
