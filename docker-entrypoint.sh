@@ -1,15 +1,14 @@
 #!/bin/bash
 set -e
 
-# If /app/data is mounted and empty (e.g. on Railway/Render persistent volumes),
-# copy seed files to it.
-if [ ! -f /app/data/knowledge_graph.json ]; then
-  echo "Data volume is empty or uninitialized. Initializing with seed data..."
+# Sync seed data if ChromaDB is not present in the target data directory
+if [ ! -f /app/data/chroma_db/chroma.sqlite3 ]; then
+  echo "ChromaDB SQLite index not found in /app/data. Seeding from pre-built database..."
   mkdir -p /app/data
-  cp -r /app/data_seed/* /app/data/
+  cp -r /app/data_seed/* /app/data/ || true
 fi
 
-# If chroma_db is empty or doesn't exist, build it
+# Double check if chroma_db is still empty (in case seeding was skipped or failed)
 if [ ! -d /app/data/chroma_db ] || [ -z "$(ls -A /app/data/chroma_db 2>/dev/null)" ]; then
   echo "ChromaDB vector store is empty. Building index (this may take a few minutes)..."
   python -m src.pipeline.ingest
