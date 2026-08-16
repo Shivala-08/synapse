@@ -27,8 +27,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Download spaCy model
 RUN python -m spacy download en_core_web_sm || echo "spaCy model download skipped"
 
-# Pre-cache SentenceTransformer embedding model to make startup fast
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 # Copy application files
 COPY . /app/
