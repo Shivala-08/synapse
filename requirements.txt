@@ -12,6 +12,7 @@ pdfplumber==0.11.4
 python-docx==1.1.2
 
 # Embeddings & ML
+sentence-transformers==3.3.1
 transformers==4.46.3
 
 # Vector store
@@ -31,7 +32,6 @@ faker==33.1.0
 
 # UI
 streamlit==1.41.1
-streamlit-agraph==0.0.45
 
 # Utilities
 python-dotenv==1.0.1

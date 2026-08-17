@@ -62,13 +62,23 @@ class IndustrialKnowledgeGraph:
 
     def add_entity(self, entity_id: str, entity_type: str, **attrs):
         """Add an entity node to the graph."""
-        if not self.graph.has_node(entity_id):
-            self.graph.add_node(
-                entity_id,
-                type=entity_type,
-                color=NODE_COLORS.get(entity_type, "#6b7280"),
-                **attrs,
-            )
+        if self.graph.has_node(entity_id):
+            # Node may already exist (e.g. auto-created by add_edge before its
+            # add_entity call); complete missing type/color attributes so it is
+            # not rendered as 'unknown' in the UI.
+            node = self.graph.nodes[entity_id]
+            if "type" not in node:
+                node["type"] = entity_type
+                node.setdefault("color", NODE_COLORS.get(entity_type, "#6b7280"))
+            for k, v in attrs.items():
+                node.setdefault(k, v)
+            return
+        self.graph.add_node(
+            entity_id,
+            type=entity_type,
+            color=NODE_COLORS.get(entity_type, "#6b7280"),
+            **attrs,
+        )
 
     def add_relationship(self, source: str, target: str, relation: str, **attrs):
         """Add a relationship edge between two entities."""

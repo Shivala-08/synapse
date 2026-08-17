@@ -253,6 +253,14 @@ GLOBAL_CSS = """
     .path-node { display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-sm); padding: 0.25rem 0.65rem; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); }
     .path-arrow { color: var(--accent-primary); font-size: 1.1rem; margin: 0 0.2rem; }
 
+    .pipe-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin: 0.6rem 0 0.9rem 0; font-family: 'JetBrains Mono', monospace; }
+    .pipe-step { padding: 0.28rem 0.6rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.02em; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(13, 17, 33, 0.7); color: #94a3b8; white-space: nowrap; }
+    .pipe-step.pipe-done { color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.07); }
+    .pipe-step.pipe-hit { color: #fde047; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); }
+    .pipe-step.pipe-warn { color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.06); }
+    .pipe-step.pipe-skip { color: #64748b; border-color: rgba(107, 114, 128, 0.25); background: rgba(107, 114, 128, 0.05); }
+    .pipe-arrow { color: #475569; font-size: 0.7rem; }
+
     .breadcrumb-trail { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 1rem; padding: 0.5rem 0.8rem; background: rgba(13, 17, 33, 0.5); border-radius: var(--radius-md); border: 1px solid rgba(255, 255, 255, 0.04); }
     .breadcrumb-item { font-size: 0.76rem; color: var(--text-muted); cursor: pointer; }
     .breadcrumb-item:hover { color: var(--accent-primary); }

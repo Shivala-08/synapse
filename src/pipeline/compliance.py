@@ -35,7 +35,11 @@ class ComplianceChecker:
         logger.info(f"Checking compliance for requirement: {requirement[:100]}...")
 
         # 1. Extract entities from the requirement
-        req_entities = extract_entities(requirement)
+        try:
+            req_entities = extract_entities(requirement)
+        except Exception as e:
+            logger.error(f"Entity extraction failed for requirement '{requirement[:100]}': {e}. Continuing without entities.")
+            req_entities = {}
         entities_found = []
         for entity_list in req_entities.values():
             entities_found.extend(entity_list)

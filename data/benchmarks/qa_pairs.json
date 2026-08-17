@@ -7,7 +7,8 @@
       "OISD-116",
       "OISD-117"
     ],
-    "category": "equipment_inspection"
+    "category": "equipment_inspection",
+    "type": "factual_lookup"
   },
   {
     "id": "Q002",
@@ -17,16 +18,18 @@
       "OISD-116",
       "OISD-117"
     ],
-    "category": "equipment_inspection"
+    "category": "equipment_inspection",
+    "type": "factual_lookup"
   },
   {
     "id": "Q003",
     "question": "When is a hot work permit required?",
-    "answer": "A hot work permit is mandatory for any work involving open flames, sparks, or temperatures exceeding 30°C above ambient in hazardous areas, per OISD-116 Section 3.1.",
+    "answer": "A hot work permit is mandatory for any work involving open flames, sparks, or temperatures exceeding 30\u00b0C above ambient in hazardous areas, per OISD-116 Section 3.1.",
     "source_docs": [
       "OISD-116"
     ],
-    "category": "permits"
+    "category": "permits",
+    "type": "factual_lookup"
   },
   {
     "id": "Q004",
@@ -35,7 +38,8 @@
     "source_docs": [
       "OISD-116"
     ],
-    "category": "emergency"
+    "category": "emergency",
+    "type": "factual_lookup"
   },
   {
     "id": "Q005",
@@ -44,7 +48,8 @@
     "source_docs": [
       "DGMS-2023-01"
     ],
-    "category": "safety_equipment"
+    "category": "safety_equipment",
+    "type": "factual_lookup"
   },
   {
     "id": "Q006",
@@ -53,16 +58,18 @@
     "source_docs": [
       "FA-SEC-7A"
     ],
-    "category": "compliance"
+    "category": "compliance",
+    "type": "factual_lookup"
   },
   {
     "id": "Q007",
     "question": "What is the minimum fresh air supply requirement for underground mines?",
-    "answer": "Fresh air supply must be maintained at a minimum of 0.1 m³/s per worker in underground mines, per DGMS Circular 2022-05.",
+    "answer": "Fresh air supply must be maintained at a minimum of 0.1 m\u00b3/s per worker in underground mines, per DGMS Circular 2022-05.",
     "source_docs": [
       "DGMS-2022-05"
     ],
-    "category": "safety_environment"
+    "category": "safety_environment",
+    "type": "factual_lookup"
   },
   {
     "id": "Q008",
@@ -71,7 +78,8 @@
     "source_docs": [
       "FA-SEC-36"
     ],
-    "category": "fire_safety"
+    "category": "fire_safety",
+    "type": "factual_lookup"
   },
   {
     "id": "Q009",
@@ -80,7 +88,8 @@
     "source_docs": [
       "OISD-118"
     ],
-    "category": "process_safety"
+    "category": "process_safety",
+    "type": "factual_lookup"
   },
   {
     "id": "Q010",
@@ -89,7 +98,8 @@
     "source_docs": [
       "OISD-119"
     ],
-    "category": "equipment_inspection"
+    "category": "equipment_inspection",
+    "type": "factual_lookup"
   },
   {
     "id": "Q011",
@@ -98,7 +108,8 @@
     "source_docs": [
       "FA-SEC-40A"
     ],
-    "category": "incident_reporting"
+    "category": "incident_reporting",
+    "type": "factual_lookup"
   },
   {
     "id": "Q012",
@@ -107,7 +118,8 @@
     "source_docs": [
       "FA-SEC-41C"
     ],
-    "category": "worker_rights"
+    "category": "worker_rights",
+    "type": "factual_lookup"
   },
   {
     "id": "Q013",
@@ -116,7 +128,8 @@
     "source_docs": [
       "FA-SEC-38"
     ],
-    "category": "equipment_safety"
+    "category": "equipment_safety",
+    "type": "factual_lookup"
   },
   {
     "id": "Q014",
@@ -125,7 +138,8 @@
     "source_docs": [
       "FA-SEC-41B"
     ],
-    "category": "hazardous_processes"
+    "category": "hazardous_processes",
+    "type": "factual_lookup"
   },
   {
     "id": "Q015",
@@ -134,7 +148,8 @@
     "source_docs": [
       "DGMS-2022-05"
     ],
-    "category": "monitoring"
+    "category": "monitoring",
+    "type": "factual_lookup"
   },
   {
     "id": "Q016",
@@ -143,7 +158,8 @@
     "source_docs": [
       "DGMS-2023-01"
     ],
-    "category": "training"
+    "category": "training",
+    "type": "factual_lookup"
   },
   {
     "id": "Q017",
@@ -152,7 +168,8 @@
     "source_docs": [
       "OISD-130"
     ],
-    "category": "electrical_safety"
+    "category": "electrical_safety",
+    "type": "factual_lookup"
   },
   {
     "id": "Q018",
@@ -161,6 +178,232 @@
     "source_docs": [
       "OISD-117"
     ],
-    "category": "equipment_inspection"
+    "category": "equipment_inspection",
+    "type": "factual_lookup"
+  },
+  {
+    "id": "Q019",
+    "type": "factual_lookup",
+    "category": "permits",
+    "question": "What is the current status of permit PRM-2026-5000?",
+    "answer": "Permit PRM-2026-5000, a Line Breaking permit for pump PUMP-B01 at Refinery Unit A, has status Expired. It was issued to Victoria Contreras by Krista Roberts on 2026-06-12 and expired on 2026-06-26.",
+    "source_docs": [
+      "permits.csv"
+    ]
+  },
+  {
+    "id": "Q020",
+    "type": "factual_lookup",
+    "category": "work_orders",
+    "question": "What equipment and priority are associated with work order WO-2026-1001?",
+    "answer": "Work order WO-2026-1001 covers equipment VAN-V02 at Steel Mill D with Critical priority. It belongs to the Maintenance department, is assigned to Michael Miles, and has status Open.",
+    "source_docs": [
+      "work_orders.csv"
+    ]
+  },
+  {
+    "id": "Q021",
+    "type": "factual_lookup",
+    "category": "incident_reporting",
+    "question": "What was the injury severity recorded for incident INC-2026-9001?",
+    "answer": "Incident INC-2026-9001 at Steel Mill D involving equipment EQ-2002 was a Recordable incident with injury severity Lost Time. The worker involved was Phillip Burns and it references Section 40A.",
+    "source_docs": [
+      "incident_reports.csv"
+    ]
+  },
+  {
+    "id": "Q022",
+    "type": "factual_lookup",
+    "category": "inspections",
+    "question": "Who performed the post-maintenance inspection INS-2026-8000 on PUMP-B01?",
+    "answer": "Inspection INS-2026-8000 of pump PUMP-B01 at Steel Mill D was performed by inspector Carrie Moore on 2026-04-23 during the Swing Shift. It recorded Minor severity and referenced OISD-119.",
+    "source_docs": [
+      "inspection_logs.csv"
+    ]
+  },
+  {
+    "id": "Q023",
+    "type": "factual_lookup",
+    "category": "permits",
+    "question": "What permit type is PRM-2026-5002?",
+    "answer": "Permit PRM-2026-5002 is a Work at Height permit for filter FIL-F01 at Refinery Unit A with status Cancelled. It was issued by Diane Miller and references OISD-119.",
+    "source_docs": [
+      "permits.csv"
+    ]
+  },
+  {
+    "id": "Q024",
+    "type": "multi_hop",
+    "category": "work_orders",
+    "question": "Which regulation applies to work order WO-2026-1001 and what hazard is associated with it?",
+    "answer": "Work order WO-2026-1001 for valve VAN-V02 at Steel Mill D references regulation OISD-117 and lists Confined space as its safety hazard.",
+    "source_docs": [
+      "work_orders.csv",
+      "OISD-117"
+    ]
+  },
+  {
+    "id": "Q025",
+    "type": "multi_hop",
+    "category": "permits",
+    "question": "Which equipment is covered by permit PRM-2026-5000 and which regulation governs it?",
+    "answer": "Permit PRM-2026-5000 covers pump PUMP-B01 at Refinery Unit A and references regulation OISD-119.",
+    "source_docs": [
+      "permits.csv",
+      "OISD-119"
+    ]
+  },
+  {
+    "id": "Q026",
+    "type": "multi_hop",
+    "category": "permits",
+    "question": "Which permits have been issued for equipment at Refinery Unit A?",
+    "answer": "Permits issued at Refinery Unit A include PRM-2026-5000 for PUMP-B01 (Line Breaking) and PRM-2026-5002 for FIL-F01 (Work at Height), among others.",
+    "source_docs": [
+      "permits.csv"
+    ]
+  },
+  {
+    "id": "Q027",
+    "type": "multi_hop",
+    "category": "inspections",
+    "question": "Which inspection found Critical findings on EQ-1001 and which regulation does it reference?",
+    "answer": "Inspection INS-2026-8002 found Critical findings on equipment EQ-1001 at Chemical Plant C, was conducted by Brian Wiggins, and references DGMS Circular 2022-05.",
+    "source_docs": [
+      "inspection_logs.csv"
+    ]
+  },
+  {
+    "id": "Q028",
+    "type": "multi_hop",
+    "category": "work_orders",
+    "question": "Which work orders reference OISD-117 and which equipment do they cover?",
+    "answer": "Work orders referencing OISD-117 include WO-2026-1001 covering valve VAN-V02 and WO-2026-1003 covering motor MTR-M01, plus several others.",
+    "source_docs": [
+      "work_orders.csv"
+    ]
+  },
+  {
+    "id": "Q029",
+    "type": "multi_hop",
+    "category": "work_orders",
+    "question": "Which open work order covers equipment EQ-1001 and which regulation does it reference?",
+    "answer": "Open work order WO-2026-1000 covers equipment EQ-1001 at Chemical Plant C with High priority and references OISD-116.",
+    "source_docs": [
+      "work_orders.csv",
+      "OISD-116"
+    ]
+  },
+  {
+    "id": "Q030",
+    "type": "compliance_gap",
+    "category": "electrical_safety",
+    "question": "Is there a documented requirement for lockout/tagout procedures?",
+    "answer": "Yes. OISD-130 Section 1.3 requires lockout/tagout procedures to be implemented before maintenance work on electrical equipment.",
+    "source_docs": [
+      "OISD-130"
+    ]
+  },
+  {
+    "id": "Q031",
+    "type": "compliance_gap",
+    "category": "emergency",
+    "question": "Is there a documented requirement for inspecting fire fighting equipment?",
+    "answer": "Yes. OISD-116 Section 4.2 requires fire fighting equipment to be inspected monthly.",
+    "source_docs": [
+      "OISD-116"
+    ]
+  },
+  {
+    "id": "Q032",
+    "type": "compliance_gap",
+    "category": "safety_equipment",
+    "question": "Is there a documented requirement for emergency communication systems in underground mines?",
+    "answer": "Yes. DGMS Circular 2023-01 requires emergency communication systems to be installed at 100 metre intervals in underground mines.",
+    "source_docs": [
+      "DGMS-2023-01"
+    ]
+  },
+  {
+    "id": "Q033",
+    "type": "compliance_gap",
+    "category": "safety_environment",
+    "question": "Is there a documented requirement for backup power for mine ventilation systems?",
+    "answer": "Yes. DGMS Circular 2022-05 requires ventilation systems in underground mines to have backup power supply.",
+    "source_docs": [
+      "DGMS-2022-05"
+    ]
+  },
+  {
+    "id": "Q034",
+    "type": "contradiction",
+    "category": "equipment_inspection",
+    "question": "Do the safety manual and OISD-117 disagree on the internal inspection frequency for tank TNK-T03?",
+    "answer": "Yes, there is a conflict. The safety manual states TNK-T03 requires annual internal inspection, while OISD-117 classifies TNK-T03 as a Group B tank requiring biennial internal inspection.",
+    "source_docs": [
+      "safety_manual.txt",
+      "OISD-117"
+    ]
+  },
+  {
+    "id": "Q035",
+    "type": "contradiction",
+    "category": "equipment_inspection",
+    "question": "Do the safety manual and OISD-116 agree on the monitoring frequency for pumps?",
+    "answer": "Both documents require monthly monitoring for pumps. OISD-116 specifies monthly vibration, temperature and seal integrity checks, and the safety manual requires monthly vibration checks for PUMP-A01 and PUMP-A02.",
+    "source_docs": [
+      "safety_manual.txt",
+      "OISD-116"
+    ]
+  },
+  {
+    "id": "Q036",
+    "type": "compliance_gap",
+    "category": "construction_safety",
+    "question": "Is there a documented requirement for handling slippery workplaces during construction?",
+    "answer": "Yes. OISD-GDN-192 states that workplaces and passageways that are slippery owing to oil, grease or other causes should be cleaned up or strewn with sand, sawdust or ash.",
+    "source_docs": [
+      "OISD-GDN-192"
+    ]
+  },
+  {
+    "id": "Q037",
+    "type": "compliance_gap",
+    "category": "construction_safety",
+    "question": "Are visitors allowed unaccompanied on construction sites?",
+    "answer": "No. OISD-GDN-192 requires construction sites to be fenced to prevent unauthorised entry, and visitors must be accompanied by authorized personnel.",
+    "source_docs": [
+      "OISD-GDN-192"
+    ]
+  },
+  {
+    "id": "Q038",
+    "type": "multi_hop",
+    "category": "inspections",
+    "question": "Which regulation does the inspection of PUMP-B01 reference and what severity was recorded?",
+    "answer": "The post-maintenance inspection INS-2026-8000 of pump PUMP-B01 at Steel Mill D recorded Minor severity and references OISD-119.",
+    "source_docs": [
+      "inspection_logs.csv"
+    ]
+  },
+  {
+    "id": "Q039",
+    "type": "multi_hop",
+    "category": "incident_reporting",
+    "question": "Which plant and equipment were involved in the Lost Time incident INC-2026-9000 and which regulation does it reference?",
+    "answer": "Incident INC-2026-9000 was a Lost Time incident at Power Plant B involving equipment HX-D01, and it references Section 7A.",
+    "source_docs": [
+      "incident_reports.csv"
+    ]
+  },
+  {
+    "id": "Q040",
+    "type": "multi_hop",
+    "category": "permits",
+    "question": "Which hot work permit is currently active and which equipment does it cover?",
+    "answer": "Permit PRM-2026-5025 is an active Hot Work permit covering equipment EQ-1001.",
+    "source_docs": [
+      "permits.csv"
+    ]
   }
 ]

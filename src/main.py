@@ -4,6 +4,7 @@ Day 4: Real LLM integration (Ollama, no API key), /benchmark/run, /feedback,
         /debug/search added.
 """
 
+import copy
 import json
 import os
 import shutil
@@ -100,6 +101,7 @@ class QueryResponse(BaseModel):
     key_points: List[str] = []
     model_used: str = "unknown"
     latency_ms: int = 0
+    trace: Optional[dict] = None    # per-stage pipeline trace for the evidence panel
 
 
 class FeedbackRequest(BaseModel):
@@ -442,6 +444,38 @@ async def get_document(doc_id: str):
 
 # ── Query Endpoint ───────────────────────────────────────────────────────────
 
+
+def _build_trace(
+    context: dict,
+    routing_mode: str = "auto",
+    latency_ms: int = 0,
+    cache: str = "miss",
+    model: str = "",
+    thinking: Optional[bool] = None,
+    complexity: Optional[bool] = None,
+) -> dict:
+    """Build the per-stage pipeline trace surfaced in the "Why this answer?" panel.
+
+    Phase 5 (UI pass): the frontend renders a Query → Cache → Hybrid Retrieve →
+    Rerank → Graph → LLM → Answer step indicator from this dict, so every field
+    must reflect what actually happened in this request.
+    """
+    return {
+        "cache": cache,
+        "hybrid": bool(settings.use_hybrid),
+        "reranker": bool(settings.use_reranker),
+        "candidates": len(context.get("candidate_chunks", [])),
+        "chunks_used": len(context.get("vector_chunks", [])),
+        "graph_entities": len(context.get("graph_entities", [])),
+        "graph_relations": len(context.get("graph_relations", [])),
+        "complexity": complexity,
+        "thinking": thinking,
+        "model": model,
+        "routing_mode": routing_mode,
+        "latency_ms": latency_ms,
+    }
+
+
 @app.post("/query", response_model=QueryResponse)
 async def query_rag(request: QueryRequest):
     """POST /query — retrieve context then generate a structured answer.
@@ -504,14 +538,31 @@ async def query_rag(request: QueryRequest):
             f"confidence={ans.get('confidence')} | model={ans.get('model_used')}"
         )
 
+        # ── Phase 5: per-stage trace for the evidence panel ─────────────────────
+        model_used = ans.get("model_used", "unknown")
+        cache_status = "hit" if "Semantic Cache" in str(model_used) else "miss"
+        complexity = None
+        thinking = None
+        if (request.routing_mode or "auto") == "auto":
+            try:
+                complexity = classify_query_complexity(request.question, context.get("vector_chunks", [])).get("is_complex")
+                thinking = not complexity
+            except Exception:
+                pass
+
         return QueryResponse(
             answer       = ans.get("answer", ""),
             sources      = ans.get("sources", []),
             confidence   = ans.get("confidence", 0.0),
             entities_used= ans.get("entities_used", []),
             key_points   = ans.get("key_points", []),
-            model_used   = ans.get("model_used", "unknown"),
+            model_used   = model_used,
             latency_ms   = latency_ms,
+            trace        = _build_trace(
+                context, routing_mode=request.routing_mode or "auto",
+                latency_ms=latency_ms, cache=cache_status,
+                model=model_used, thinking=thinking, complexity=complexity,
+            ),
         )
 
     except HTTPException:
@@ -545,6 +596,44 @@ async def query_rag_stream(request: QueryRequest):
             yield f"data: {json.dumps({'type': 'metadata', 'content': {'answer': 'No documents indexed yet.', 'sources': [], 'confidence': 0.0, 'entities_used': [], 'key_points': [], 'model_used': 'N/A', 'latency_ms': 0}})}\n\n"
             yield f"data: {json.dumps({'type': 'done', 'content': ''})}\n\n"
         return StreamingResponse(_empty_gen(), media_type="text/event-stream")
+
+    # ── Semantic-cache fast-path (Phase 5 trace: Cache stage can actually HIT) ─
+    # The non-stream /query path checks the cache inside generate_answer(); the
+    # streaming endpoint used to only *write* to the cache. Check it up front so
+    # duplicate queries stream the cached answer instantly instead of hitting
+    # the LLM again.
+    routing_mode = request.routing_mode or "auto"
+    if routing_mode == "auto" and settings.use_semantic_cache:
+        try:
+            embedder = get_embedder()
+            qe = np.array(embedder.embed_query(request.question))
+            _cached_res = _semantic_cache.get(qe)
+        except Exception as e:
+            logger.error(f"Semantic cache read failed in /query/stream: {e}")
+            _cached_res = None
+    else:
+        _cached_res = None
+
+    if _cached_res is not None:
+        cached = copy.deepcopy(_cached_res)
+        cached.setdefault("latency_ms", 0)
+        cached.setdefault("sources", [])
+        cached.setdefault("entities_used", [])
+        cached.setdefault("key_points", [])
+        cached["model_used"] = f"{cached.get('model_used', '')} (Semantic Cache)"
+        cached["trace"] = _build_trace(
+            {}, routing_mode="auto", latency_ms=cached.get("latency_ms", 0),
+            cache="hit", model=cached.get("model_used", "Semantic Cache"),
+        )
+
+        async def _cached_gen():
+            yield f"data: {json.dumps({'type': 'token', 'content': cached.get('answer', '')})}\n\n"
+            yield f"data: {json.dumps({'type': 'metadata', 'content': cached})}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'content': ''})}\n\n"
+        return StreamingResponse(
+            _cached_gen(), media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
     top_k = request.top_k or settings.top_k
     context = retrieve_context(request.question, top_k=top_k, filters=request.filters)
@@ -604,6 +693,7 @@ async def query_rag_stream(request: QueryRequest):
 
     # ── Determine Model and Reasoning Settings based on Routing Mode ──────────
     routing_mode = request.routing_mode or "auto"
+    complexity = None
     if routing_mode == "fast":
         target_model = "meta/llama-3.1-8b-instruct"
         enable_thinking = False
@@ -626,6 +716,13 @@ async def query_rag_stream(request: QueryRequest):
     llm = get_llm()
     is_nvidia = isinstance(llm, NvidiaLLM)
     llm_label = "NVIDIA API" if is_nvidia else ("Ollama" if isinstance(llm, OllamaLLM) else "Smart Context")
+
+    # ── Phase 5: per-stage trace emitted with the metadata event ──────────────
+    trace = _build_trace(
+        context, routing_mode=routing_mode, cache="miss",
+        model=target_model, thinking=enable_thinking,
+        complexity=complexity["is_complex"] if complexity else None,
+    )
 
     # ── Generator: stream tokens via SSE ──────────────────────────────────────
     async def event_stream():
@@ -669,6 +766,8 @@ async def query_rag_stream(request: QueryRequest):
             result["confidence"] = result.get("confidence", "Medium")
             if error_msg:
                 result["error"] = error_msg
+            trace["latency_ms"] = latency_ms
+            result["trace"] = trace
 
             if routing_mode == "auto":
                 try:

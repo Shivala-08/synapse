@@ -23,6 +23,7 @@ from src.ui.design_system import (
     sidebar_brand, sidebar_footer, llm_status_pill, confidence_badge,
     fmt_time, post_feedback, chat_bubble, citation_card, keypoints_box,
     info_banner, settings_section, doc_card_html, skeleton_card,
+    pipeline_trace, evidence_stats_row,
 )
 
 try:
@@ -106,14 +107,53 @@ def show_entity_graph(entity_id: str):
         st.error(f"Error loading graph: {e}")
 
 
+# ── Evidence trace block (Phase 5.1 / 5.2) ─────────────────────────────────
+def render_evidence_block(trace, sources, expanded: bool = False):
+    """Collapsible 'Why this answer?' panel: pipeline visual + retrieval stats + citations."""
+    srcs = sources or []
+    tr = trace or {}
+    n = len(srcs)
+    if not srcs and not tr:
+        return
+    label = f"🔍 Why this answer? — {n} source(s)" if srcs else "🔍 Why this answer?"
+    with st.expander(label, expanded=expanded):
+        if tr:
+            st.markdown(pipeline_trace(tr), unsafe_allow_html=True)
+            stats_html = evidence_stats_row(tr)
+            if stats_html:
+                st.markdown(stats_html, unsafe_allow_html=True)
+        for si, src in enumerate(srcs, 1):
+            cite = src.get("citation") or src.get("doc_id", "Unknown")
+            st.markdown(
+                citation_card(si, cite, src.get("distance", 0), src.get("excerpt", "")),
+                unsafe_allow_html=True,
+            )
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # HERO HEADER
 # ══════════════════════════════════════════════════════════════════════════════
+# Live system status badge (Phase 4.3) — reassures visitors the app is live.
+try:
+    _health = requests.get(f"{API_URL}/health", timeout=5)
+    _online = _health.status_code == 200
+except Exception:
+    _online = False
+
+_status_color = "#10b981" if _online else "#ef4444"
+_status_text = "● System Online" if _online else "○ Backend Offline"
+status_html = (
+    '<div class="stat-counter-card" style="min-width:130px;text-align:center;">'
+    f'<div style="font-size:0.95rem;font-weight:800;color:{_status_color};">{_status_text}</div>'
+    '<div style="font-size:0.68rem;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Live</div>'
+    '</div>'
+)
+
 hero_header(
     title="Synapse",
     subtitle="AI-Powered Knowledge Intelligence",
     badge_text="",
-    extra_right="",
+    extra_right=status_html,
 )
 
 
@@ -262,14 +302,7 @@ with tab_chat:
                             if st.button(f"{e}", key=f"ent_btn_{idx}_{i}", use_container_width=True):
                                 show_entity_graph(e)
 
-                srcs = msg.get("sources", [])
-                if srcs:
-                    with st.expander(f"{len(srcs)} Source(s) cited", expanded=False):
-                        for si, src in enumerate(srcs, 1):
-                            st.markdown(
-                                citation_card(si, src.get("citation", "Unknown"), src.get("distance", 0), src.get("excerpt", "")),
-                                unsafe_allow_html=True,
-                            )
+                render_evidence_block(msg.get("trace"), msg.get("sources"), expanded=False)
 
                 c1, c2, _ = st.columns([1, 1, 8])
                 if c1.button("Good", key=f"up_{idx}", help="Good answer"):
@@ -279,17 +312,40 @@ with tab_chat:
                     post_feedback(msg.get("question", ""), msg["content"][:300], -1, API_URL)
                     st.toast("Feedback logged. We'll improve!", icon="👎")
 
+    # Example queries (Phase 4.1) — a visitor never faces a blank text box
+    with st.expander("💡 Try these questions", expanded=not st.session_state.get("messages")):
+        _examples = [
+            ("⚡ Simple lookup", "What are the electrical safety requirements per OISD-130?"),
+            ("🔗 Multi-hop", "Which regulation applies to work order WO-2026-1001?"),
+            ("⚖️ Contradiction", "Do the safety manual and OISD-117 disagree on the internal inspection frequency for tank TNK-T03?"),
+            ("📋 Compliance gap", "Is there a documented requirement for lockout/tagout procedures?"),
+            ("🗂️ Record lookup", "What is the current status of permit PRM-2026-5000?"),
+        ]
+        _ex_cols = st.columns(len(_examples))
+        for _i, (_label, _question) in enumerate(_examples):
+            with _ex_cols[_i]:
+                if st.button(_label, key=f"ex_q_{_i}", help=_question, use_container_width=True):
+                    st.session_state.pending_query = _question
+                    st.rerun()
+
     # Input
     user_query = st.chat_input(
         "Ask a safety or regulatory question… (e.g. 'What PPE is required for hot work near COMP-C01?')"
     )
 
+    # An example-query button supplies the question on the next rerun
+    if user_query is None and st.session_state.get("pending_query"):
+        user_query = st.session_state.pop("pending_query")
+
     if user_query:
         st.markdown(chat_bubble("user", user_query), unsafe_allow_html=True)
         st.session_state.messages.append({"role": "user", "content": user_query})
 
-        answer = ""; sources = []; confidence = "Medium"; key_points = []; entities = []; model_used = "unknown"; latency_ms = 0
+        answer = ""; sources = []; confidence = "Medium"; key_points = []; entities = []; model_used = "unknown"; latency_ms = 0; trace = {}
         stream_placeholder = st.empty(); streaming_text = ""
+
+        # Phase 4.2 — visible cold-start state instead of a silent hang
+        stream_placeholder.markdown("_⏳ Warming up models — the first query can take a few seconds…_")
 
         try:
             import httpx
@@ -322,6 +378,7 @@ with tab_chat:
                                 entities = content.get("entities_used", [])
                                 model_used = content.get("model_used", "unknown")
                                 latency_ms = content.get("latency_ms", 0)
+                                trace = content.get("trace", {})
                             elif etype == "error":
                                 st.error(f"LLM error: {content}")
         except ImportError:
@@ -364,15 +421,13 @@ with tab_chat:
                         if st.button(f"{e}", key=f"ent_btn_live_{i}", use_container_width=True):
                             show_entity_graph(e)
 
-            if sources:
-                with st.expander(f"{len(sources)} Source(s) cited", expanded=True):
-                    for si, src in enumerate(sources, 1):
-                        st.markdown(citation_card(si, src.get("citation", "Unknown"), src.get("distance", 0), src.get("excerpt", "")), unsafe_allow_html=True)
+            render_evidence_block(trace, sources, expanded=True)
 
             st.session_state.messages.append({
                 "role": "assistant", "content": answer, "confidence": confidence,
                 "key_points": key_points, "entities_used": entities, "model_used": model_used,
                 "latency_ms": latency_ms, "sources": sources, "question": user_query,
+                "trace": trace,
             })
             st.session_state.last_answer = answer
 
@@ -671,7 +726,7 @@ with tab_bench:
 
     col_run, col_n = st.columns([3, 1])
     with col_n:
-        max_q = st.number_input("Questions to run", min_value=1, max_value=18, value=18, step=1)
+        max_q = st.number_input("Questions to run", min_value=1, max_value=40, value=40, step=1)
     with col_run:
         run_btn = st.button("Run Verification Suite", use_container_width=True)
 

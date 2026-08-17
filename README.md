@@ -1,8 +1,8 @@
-# Synapse
+# Synapse — Graph-Augmented Knowledge Intelligence Engine
 
-**ET AI Hackathon 2026 — Problem Statement 8**
+A personal R&D project exploring **hybrid retrieval, knowledge-graph-augmented RAG, and adaptive model routing**. Synapse ingests heterogeneous industrial documents (regulatory guides, safety manuals, work orders, permits, incident reports) and answers questions with cited, confidence-scored responses by merging semantic vector search with a structured knowledge graph.
 
-A premium, production-ready RAG-powered system that ingests heterogeneous industrial documents (regulatory guides, safety manuals, work orders, permits, incident reports) and provides cited, confidence-scored answers by merging semantic vector search with a structured knowledge graph.
+> **Provenance:** Originally built in 36 hours for the ET AI Hackathon 2026, then rebuilt with an offline-capable embedding stack, a cleaned knowledge graph, an evaluation harness with ablation studies, and a 100+ unit-test suite. See [`CHANGELOG.md`](CHANGELOG.md) for the full history, [`EVALUATION.md`](EVALUATION.md) for retrieval metrics, and [`docs/CASE_STUDY.md`](docs/CASE_STUDY.md) for the one-page case study.
 
 ---
 
@@ -154,9 +154,9 @@ Navigate to the **Documents** tab to audit files.
 
 ---
 
-## 🛠️ Advanced Hackathon Upgrades
+## 🛠️ Advanced Features & Resilience
 
-The system has been updated with several premium features to handle scanned documents, prevent rate-limiting crashes, and maximize visual aesthetics.
+The system includes several hard-won features for handling scanned documents, preventing rate-limiting crashes, and maximizing visual polish.
 
 ### 1. Scanned PDF Transcription & Ingestion
 In industrial settings, many regulatory guides (such as `OISD-GDN-192.pdf`) are scanned images without a selectable text layer, causing standard PDF libraries like `pdfplumber` to extract 0 characters.
@@ -219,14 +219,28 @@ The system underwent a three-tier optimization pass that improved accuracy from 
 
 ---
 
+## 🔧 How This Was Built
+
+Every subsystem here survived a real failure before it earned its place — a
+scanned PDF that parsed to zero characters, rate limits that struck mid-stream,
+an OOM-killed deployment, and a vector index silently rebuilt with zero
+vectors. The failures, attempts, and fixes are written up in
+[`ENGINEERING_LOG.md`](ENGINEERING_LOG.md) (Problem → Attempt → Result → Fix),
+and the quantitative case for each retained component is in
+[`EVALUATION.md`](EVALUATION.md).
+
+---
+
 ## 🚀 Quick Start
+
+> **Cost note:** Synapse uses the NVIDIA NIM free tier with a local Ollama fallback and an offline-capable local embedder — no paid API key is required to run it.
 
 ### 1. Set Up Environment
 Ensure you have Python 3.10+ installed:
 ```bash
 # Clone the repository
-git clone https://github.com/Shivala-08/economic-times-hackathon.git
-cd economic-times-hackathon
+git clone https://github.com/Shivala-08/synapse.git
+cd synapse
 
 # Initialize virtual environment
 python3 -m venv .venv
@@ -259,19 +273,29 @@ To stop the servers, run:
 
 ### Running the Q&A Benchmark
 ```bash
-# Run the full 18-question ground-truth benchmark evaluation directly
+# Run the full ground-truth benchmark evaluation directly
 PYTHONPATH=. python3 run_benchmark_now.py
 ```
-This script loads models in-process and reports per-question accuracy, latency, similarity scores, and category breakdown. Logs are saved to `data/benchmarks/retrieval_log.json`.
+This script loads models in-process and reports per-question accuracy, latency, similarity, Recall@5, MRR, and category breakdown. Logs are saved to `data/benchmarks/retrieval_log.json`.
 
-### Running Verification Tests
 ```bash
-# Verify ChromaDB vector store
+# Run the 5-configuration ablation study (vector-only → full pipeline)
+PYTHONPATH=. python3 run_ablation.py
+```
+Results are saved to `data/benchmarks/ablation_results.json`. See [**EVALUATION.md**](EVALUATION.md) for the ablation table, metric definitions, and what each component actually contributes.
+
+### Running Unit Tests
+```bash
+# Run the offline pytest unit suites (knowledge graph, extractor, chunker, llm, query engine)
+PYTHONPATH=. python -m pytest tests/test_knowledge_graph.py tests/test_extractor.py tests/test_chunker.py tests/test_llm.py tests/test_query_engine.py -q
+```
+These suites are offline (no API keys, model downloads, or live servers required).
+
+### Running Verification Tests (script-style, need live services)
+```bash
+# Verify ChromaDB vector store (requires Hugging Face Inference API access)
 PYTHONPATH=. python tests/test_chromadb.py
 
-# Verify Knowledge Graph construction and query traversal
-PYTHONPATH=. python tests/test_knowledge_graph.py
-
-# Verify FastAPI endpoint integrations
+# Verify FastAPI endpoint integrations (requires backend running on port 8000)
 PYTHONPATH=. python tests/verify_endpoints.py
 ```

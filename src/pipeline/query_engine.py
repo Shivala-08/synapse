@@ -274,128 +274,151 @@ def retrieve_context(query: str, top_k: int = 5, collection_name: str = None, fi
                     "distance": distance
                 })
     
-    # Normalization and BM25 + Vector Hybrid Fusion
+    # Normalization and BM25 + Vector Hybrid Fusion (hybrid disabled for the
+    # vector-only ablation configuration)
     if vector_chunks:
-        chunk_bm25_scores = [bm25_scores.get(c["chunk_id"], 0.0) for c in vector_chunks]
-        max_bm25 = max(chunk_bm25_scores) if chunk_bm25_scores else 0.0
-        
-        alpha = 0.4
-        for c in vector_chunks:
-            # Preserving absolute cosine similarity range [0, 1]
-            norm_vector = max(0.0, min(1.0, 1.0 - c["distance"]))
-            
-            b_score = bm25_scores.get(c["chunk_id"], 0.0)
-            norm_bm25 = b_score / max_bm25 if max_bm25 > 0 else 0.0
-            
-            c["hybrid_score"] = alpha * norm_bm25 + (1 - alpha) * norm_vector
-        
-        # Sort by hybrid score and keep top 16 candidates for CrossEncoder re-ranking
-        vector_chunks.sort(key=lambda x: x["hybrid_score"], reverse=True)
+        if settings.use_hybrid:
+            chunk_bm25_scores = [bm25_scores.get(c["chunk_id"], 0.0) for c in vector_chunks]
+            max_bm25 = max(chunk_bm25_scores) if chunk_bm25_scores else 0.0
+
+            alpha = 0.4
+            for c in vector_chunks:
+                # Preserving absolute cosine similarity range [0, 1]
+                norm_vector = max(0.0, min(1.0, 1.0 - c["distance"]))
+
+                b_score = bm25_scores.get(c["chunk_id"], 0.0)
+                norm_bm25 = b_score / max_bm25 if max_bm25 > 0 else 0.0
+
+                c["hybrid_score"] = alpha * norm_bm25 + (1 - alpha) * norm_vector
+
+            # Sort by hybrid score and keep top 16 candidates for re-ranking
+            vector_chunks.sort(key=lambda x: x["hybrid_score"], reverse=True)
+        else:
+            # Pure vector ranking: sort by distance ascending
+            for c in vector_chunks:
+                c["hybrid_score"] = max(0.0, min(1.0, 1.0 - c["distance"]))
+            vector_chunks.sort(key=lambda x: x["distance"])
+
         vector_chunks = vector_chunks[:16]
 
-    # Re-rank chunks locally using CrossEncoder
+    # Re-rank chunks locally using CrossEncoder (disabled for the no-reranker
+    # ablation configurations)
     if vector_chunks:
-        try:
-            cross_encoder = get_cross_encoder()
-            pairs = [[query, c["text"]] for c in vector_chunks]
-            scores = cross_encoder.predict(pairs)
-            
-            # Extract meaningful keywords from query for keyword matching boost
-            query_lower = query.lower()
-            query_keywords = [w for w in query_lower.split() if len(w) > 3 and w not in _KEYWORD_STOP_WORDS]
-            
-            for idx, score in enumerate(scores):
-                is_csv = vector_chunks[idx]["metadata"].get("record_type") not in ["txt", "pdf", "docx"]
-                boost = 0.0 if is_csv else 8.0
-                
-                # Keyword matching boost for regulatory documents
-                keyword_boost = 0.0
-                if not is_csv and query_keywords:
-                    chunk_text_lower = vector_chunks[idx]["text"].lower()
-                    keyword_matches = sum(1 for kw in query_keywords if kw in chunk_text_lower)
-                    keyword_boost = min(12.0, keyword_matches * 3.0)  # Up to 12 points for keyword matches
-                
-                vector_chunks[idx]["cross_score"] = float(score)
-                vector_chunks[idx]["combined_score"] = float(score) + 15.0 * vector_chunks[idx]["hybrid_score"] + boost + keyword_boost
-            vector_chunks.sort(key=lambda x: x["combined_score"], reverse=True)
-            logger.debug("Successfully re-ranked vector chunks using CrossEncoder with hybrid score fusion + keyword boost")
-        except Exception as e:
-            logger.error(f"Failed to re-rank chunks: {e}. Falling back to hybrid score.")
+        if settings.use_reranker:
+            try:
+                cross_encoder = get_cross_encoder()
+                pairs = [[query, c["text"]] for c in vector_chunks]
+                scores = cross_encoder.predict(pairs)
+
+                # Extract meaningful keywords from query for keyword matching boost
+                query_lower = query.lower()
+                query_keywords = [w for w in query_lower.split() if len(w) > 3 and w not in _KEYWORD_STOP_WORDS]
+
+                for idx, score in enumerate(scores):
+                    is_csv = vector_chunks[idx]["metadata"].get("record_type") not in ["txt", "pdf", "docx"]
+                    boost = 0.0 if is_csv else 8.0
+
+                    # Keyword matching boost for regulatory documents
+                    keyword_boost = 0.0
+                    if not is_csv and query_keywords:
+                        chunk_text_lower = vector_chunks[idx]["text"].lower()
+                        keyword_matches = sum(1 for kw in query_keywords if kw in chunk_text_lower)
+                        keyword_boost = min(12.0, keyword_matches * 3.0)  # Up to 12 points for keyword matches
+
+                    vector_chunks[idx]["cross_score"] = float(score)
+                    vector_chunks[idx]["combined_score"] = float(score) + 15.0 * vector_chunks[idx]["hybrid_score"] + boost + keyword_boost
+                vector_chunks.sort(key=lambda x: x["combined_score"], reverse=True)
+                logger.debug("Successfully re-ranked vector chunks using CrossEncoder with hybrid score fusion + keyword boost")
+            except Exception as e:
+                logger.error(f"Failed to re-rank chunks: {e}. Falling back to hybrid score.")
+                vector_chunks.sort(key=lambda x: x["hybrid_score"], reverse=True)
+        else:
+            # Ablation: skip the cross-encoder, keep the hybrid/distance ranking
             vector_chunks.sort(key=lambda x: x["hybrid_score"], reverse=True)
-        
+
+        # Expose the full ranked candidate list for benchmark retrieval metrics
+        candidate_chunks = vector_chunks[:]
         # Keep only the top 3 chunks for context assembly
         vector_chunks = vector_chunks[:3]
+    else:
+        candidate_chunks = []
 
     logger.debug(f"Retrieved {len(vector_chunks)} vector chunks (diverse search) from collection '{store.collection_name}'")
 
-    # 2. Extract entities from the query using the regex extractor
-    extracted_entities = extract_entities(query)
-    
-    # Flatten and deduplicate all query entities
-    query_entity_ids = set()
-    for category, entities in extracted_entities.items():
-        for entity in entities:
-            query_entity_ids.add(entity)
-
-    # 2b. Also extract entity IDs from retrieved chunk metadata (Tier 1.1)
-    for chunk in vector_chunks:
-        entity_ids_json = chunk["metadata"].get("entity_ids", "[]")
+    # 2. Extract entities and traverse the knowledge graph (skipped entirely for
+    #    the no-graph ablation configuration)
+    graph_entities_list = []
+    graph_relations_list = []
+    if settings.use_graph:
         try:
-            chunk_entity_ids = json.loads(entity_ids_json) if isinstance(entity_ids_json, str) else entity_ids_json
-            for eid in chunk_entity_ids:
-                if eid:
-                    query_entity_ids.add(eid)
-        except (json.JSONDecodeError, TypeError):
-            pass
-    
-    logger.debug(f"Total entities for graph traversal: {len(query_entity_ids)} (from query + chunk metadata)")
+            extracted_entities = extract_entities(query)
+        except Exception as e:
+            logger.error(f"Entity extraction failed for query '{query[:100]}': {e}. Continuing without query entities.")
+            extracted_entities = {}
 
-    MAX_GRAPH_ENTITIES = 20
-    if len(query_entity_ids) > MAX_GRAPH_ENTITIES:
-        chunk_eids = set()
-        for c in vector_chunks:
-            entity_ids_json = c["metadata"].get("entity_ids", "[]")
+        # Flatten and deduplicate all query entities
+        query_entity_ids = set()
+        for category, entities in extracted_entities.items():
+            for entity in entities:
+                query_entity_ids.add(entity)
+
+        # 2b. Also extract entity IDs from retrieved chunk metadata (Tier 1.1)
+        for chunk in vector_chunks:
+            entity_ids_json = chunk["metadata"].get("entity_ids", "[]")
             try:
                 chunk_entity_ids = json.loads(entity_ids_json) if isinstance(entity_ids_json, str) else entity_ids_json
                 for eid in chunk_entity_ids:
-                    if isinstance(eid, str):
-                        chunk_eids.add(eid)
-            except Exception:
+                    if eid:
+                        query_entity_ids.add(eid)
+            except (json.JSONDecodeError, TypeError):
                 pass
-        query_only = [e for e in query_entity_ids if e not in chunk_eids]
-        chunk_only = [e for e in query_entity_ids if e not in query_only]
-        query_entity_ids = set(query_only + chunk_only[:MAX_GRAPH_ENTITIES - len(query_only)])
-        logger.debug(f"Capped to {len(query_entity_ids)} entities for graph traversal")
 
-    # 3. Traverse the NetworkX graph 1-hop for each found entity
-    kg = get_knowledge_graph()
-    graph_entities_list = []
-    graph_relations_list = []
+        logger.debug(f"Total entities for graph traversal: {len(query_entity_ids)} (from query + chunk metadata)")
 
-    for entity in query_entity_ids:
-        # Check if node exists in NetworkX graph
-        if kg.graph.has_node(entity):
-            # Include the queried node itself
-            graph_entities_list.append({
-                "id": entity,
-                "type": kg.graph.nodes[entity].get("type", "unknown")
-            })
+        MAX_GRAPH_ENTITIES = 20
+        if len(query_entity_ids) > MAX_GRAPH_ENTITIES:
+            chunk_eids = set()
+            for c in vector_chunks:
+                entity_ids_json = c["metadata"].get("entity_ids", "[]")
+                try:
+                    chunk_entity_ids = json.loads(entity_ids_json) if isinstance(entity_ids_json, str) else entity_ids_json
+                    for eid in chunk_entity_ids:
+                        if isinstance(eid, str):
+                            chunk_eids.add(eid)
+                except Exception:
+                    pass
+            query_only = [e for e in query_entity_ids if e not in chunk_eids]
+            chunk_only = [e for e in query_entity_ids if e not in query_only]
+            query_entity_ids = set(query_only + chunk_only[:MAX_GRAPH_ENTITIES - len(query_only)])
+            logger.debug(f"Capped to {len(query_entity_ids)} entities for graph traversal")
 
-            # Traverse 1-hop neighbors
-            for neighbor in kg.graph.neighbors(entity):
-                # Add neighbor node
+        # 3. Traverse the NetworkX graph 1-hop for each found entity
+        kg = get_knowledge_graph()
+
+        for entity in query_entity_ids:
+            # Check if node exists in NetworkX graph
+            if kg.graph.has_node(entity):
+                # Include the queried node itself
                 graph_entities_list.append({
-                    "id": neighbor,
-                    "type": kg.graph.nodes[neighbor].get("type", "unknown")
+                    "id": entity,
+                    "type": kg.graph.nodes[entity].get("type", "unknown")
                 })
-                
-                # Add relationship edge
-                edge_data = kg.graph.edges[entity, neighbor]
-                graph_relations_list.append({
-                    "source": entity,
-                    "target": neighbor,
-                    "relation": edge_data.get("relation", "related_to")
-                })
+
+                # Traverse 1-hop neighbors
+                for neighbor in kg.graph.neighbors(entity):
+                    # Add neighbor node
+                    graph_entities_list.append({
+                        "id": neighbor,
+                        "type": kg.graph.nodes[neighbor].get("type", "unknown")
+                    })
+
+                    # Add relationship edge
+                    edge_data = kg.graph.edges[entity, neighbor]
+                    graph_relations_list.append({
+                        "source": entity,
+                        "target": neighbor,
+                        "relation": edge_data.get("relation", "related_to")
+                    })
 
     # 4. Deduplicate graph nodes and edges
     # Deduplicate entities by 'id'
@@ -423,6 +446,7 @@ def retrieve_context(query: str, top_k: int = 5, collection_name: str = None, fi
 
     return {
         "vector_chunks": vector_chunks,
+        "candidate_chunks": candidate_chunks,
         "graph_entities": deduped_entities,
         "graph_relations": deduped_relations
     }
@@ -532,7 +556,7 @@ def generate_answer(query: str, context: Dict[str, Any], routing_mode: str = "au
     # ── Check semantic cache ──────────────────────────────────────────────────
     embedder = get_embedder()
     query_embedding = None
-    if routing_mode == "auto":
+    if routing_mode == "auto" and settings.use_semantic_cache:
         try:
             query_embedding = np.array(embedder.embed_query(query))
             cached_res = _semantic_cache.get(query_embedding)
@@ -682,7 +706,7 @@ def generate_answer(query: str, context: Dict[str, Any], routing_mode: str = "au
         f"{llm_label} / {target_model}" if llm.available else "Smart Context"
     )
 
-    if query_embedding is not None and routing_mode == "auto" and "Smart Context" not in result.get("model_used", ""):
+    if query_embedding is not None and routing_mode == "auto" and settings.use_semantic_cache and "Smart Context" not in result.get("model_used", ""):
         try:
             _semantic_cache.set(query_embedding, result)
         except Exception as e:

@@ -88,6 +88,75 @@ PERMIT_TYPE_PATTERNS = [
 ]
 
 
+# ── spaCy PERSON/ORG junk filter ──────────────────────────────────────────────
+# spaCy frequently mislabels PDF-extracted fragments (roman numerals, single
+# letters, lowercase headings) as PERSON/ORG. These heuristics reject that junk
+# while keeping genuine capitalized names and organisations.
+
+_ROMAN_NUMERAL_RE = re.compile(
+    r"^(?=[MDCLXVI])M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$",
+    re.IGNORECASE,
+)
+
+# Symbols/punctuation that indicate fragments ("red &", "the ( h )")
+_JUNK_CHAR_RE = re.compile(r"[^a-zA-Z\s'.-]")
+
+# Single-letter tokens ("b. gate", "w. r. t. sea") — initials like "John Q. Public"
+# are rare in this domain and acceptable to drop
+_SINGLE_LETTER_TOKEN_RE = re.compile(r"(?<![a-zA-Z])[a-zA-Z](?![a-zA-Z])")
+
+# Column/address fragments that spaCy glues onto names ("Anthony Knoll Apt",
+# "Expiry Date", "Christian Vaughn Issue")
+_JUNK_WORDS = frozenset({
+    "apt", "md", "phd", "dept", "department", "requested", "issued", "issue",
+    "expiry", "completion", "inspection", "date", "box", "floor", "ste",
+    "contact", "tag", "address", "chemical",
+})
+
+
+def is_valid_person_entity(text: str) -> bool:
+    """Return True if a spaCy PERSON/ORG span looks like a real entity.
+
+    Rejects roman numerals, digit-laden fragments, single letters, heavy
+    punctuation/symbols, all-lowercase fragments, and column-spanning spans
+    that spaCy commonly mislabels as people/organisations in PDF/CSV text.
+    """
+    raw = text
+    # Collapse all whitespace (incl. newlines) before validating
+    t = " ".join(raw.split())
+
+    # Spans that cross a line break are almost always column-spanning junk
+    # ("Alexandra Taylor\nDepartment"), unless they are just a name with a
+    # trailing newline artifact ("Diane Miller\n" -> "Diane Miller").
+    if "\n" in raw or "\t" in raw:
+        if len(re.findall(r"[a-zA-Z]+", t)) > 2:
+            return False
+
+    if not t or len(t) < 2:
+        return False
+    if _ROMAN_NUMERAL_RE.match(t):
+        return False
+    if re.search(r"\d", t):
+        return False
+    if len(_JUNK_CHAR_RE.findall(t)) > 1:
+        return False
+    if _SINGLE_LETTER_TOKEN_RE.search(t):
+        return False
+    letters = re.findall(r"[a-zA-Z]+", t)
+    if not letters:
+        return False
+    # State-code abbreviations ("AP", "AZ")
+    if len(letters) == 1 and len(letters[0]) <= 2 and letters[0].isupper():
+        return False
+    # All-lowercase fragments ("gb", "the united nations", "acetylene cylinder")
+    if all(w.islower() for w in letters):
+        return False
+    # Column/address fragments ("Anthony Knoll Apt", "Expiry Date", "Chemical")
+    if any(w.lower() in _JUNK_WORDS for w in letters):
+        return False
+    return True
+
+
 class EntityExtractor:
     """Extracts industrial entities from text using spaCy and regex patterns."""
 
@@ -121,7 +190,9 @@ class EntityExtractor:
                 doc = self.nlp(text[:50000])  # limit length to avoid memory spikes
                 for ent in doc.ents:
                     if ent.label_ in ("PERSON", "ORG"):
-                        spacy_entities.append(ent.text)
+                        entity_text = " ".join(ent.text.split())  # normalize whitespace
+                        if is_valid_person_entity(entity_text):
+                            spacy_entities.append(entity_text)
             except Exception as e:
                 logger.error(f"spaCy NER extraction failed: {e}")
 
@@ -259,7 +330,7 @@ class EntityExtractor:
         pattern = re.compile(r'\b(?:Mr\.|Ms\.|Dr\.)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b')
         names = []
         for match in pattern.finditer(text):
-            names.add(match.group(1))
+            names.append(match.group(1))
         return names
 
 

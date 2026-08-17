@@ -2,16 +2,14 @@
   {
     "id": "Q001",
     "question": "Which equipment requires quarterly inspection?",
-    "status": "PASS",
-    "similarity": 0.862,
     "expected_source_docs": [
       "OISD-116",
       "OISD-117"
     ],
     "retrieved_source_docs": [
       "safety_manual.txt",
-      "OISD-116.txt",
-      "OISD-130.txt"
+      "OISD-130.txt",
+      "OISD-116.txt"
     ],
     "chunk_sources": [
       {
@@ -39,31 +37,31 @@
     "llm_sources": [
       {
         "doc_id": "safety_manual.txt",
-        "excerpt": "eq - 1001 through eq - 4002 quarterly"
+        "excerpt": "safety manual section 3 : equipment inspection requirements. all equipment tagged eq - 1001 through eq - 4002 must undergo quarterly inspections. pressure vessels tnk - t01, tnk - t02, tnk - t03 require annual internal inspection. pumps pump - a01 an"
       },
       {
         "doc_id": "OISD-130.txt",
-        "excerpt": "transformer oil testing quarterly"
+        "excerpt": "oisd - 130 : safety in electrical systems = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 130 safety in electrical systems section 1 : electrical safety standards 1. 1 all electrical equipment in hazardous areas mus"
       },
       {
         "doc_id": "OISD-116.txt",
-        "excerpt": "compressors comp - c01 comp - c02 quarterly bearing"
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 116 safety guidelines for petroleum refineries section 1 : scope and applicability "
       }
-    ]
+    ],
+    "similarity": 0.738754277452866,
+    "status": "PASS"
   },
   {
     "id": "Q002",
     "question": "What is the inspection frequency for pressure vessels TNK-T01 and TNK-T02?",
-    "status": "PASS",
-    "similarity": 0.9164,
     "expected_source_docs": [
       "OISD-116",
       "OISD-117"
     ],
     "retrieved_source_docs": [
+      "OISD-117.txt",
       "safety_manual.txt",
-      "OISD-116.txt",
-      "OISD-117.txt"
+      "OISD-116.txt"
     ],
     "chunk_sources": [
       {
@@ -91,28 +89,28 @@
     "llm_sources": [
       {
         "doc_id": "safety_manual.txt",
-        "excerpt": "annual internal inspection"
+        "excerpt": "safety manual section 3 : equipment inspection requirements. all equipment tagged eq - 1001 through eq - 4002 must undergo quarterly inspections. pressure vessels tnk - t01, tnk - t02, tnk - t03 require annual internal inspection. pumps pump - a01 an"
       },
       {
         "doc_id": "OISD-116.txt",
-        "excerpt": "annual internal inspection"
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 116 safety guidelines for petroleum refineries section 1 : scope and applicability "
       },
       {
         "doc_id": "OISD-117.txt",
-        "excerpt": "biennial external inspection"
+        "excerpt": "oisd - 117 : storage tank integrity management = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 117 storage tank integrity management section 1 : tank classification 1. 1 tanks tnk - t01 and tnk - t02 are c"
       }
-    ]
+    ],
+    "similarity": 0.6751619947437862,
+    "status": "PASS"
   },
   {
     "id": "Q003",
     "question": "When is a hot work permit required?",
-    "status": "PASS",
-    "similarity": 0.9311,
     "expected_source_docs": [
       "OISD-116"
     ],
     "retrieved_source_docs": [
-      "OISD-116.txt"
+      "NTPC_Safety_Rules.pdf"
     ],
     "chunk_sources": [
       {
@@ -124,36 +122,45 @@
       },
       {
         "doc_id": "NTPC_Safety_Rules.pdf",
-        "chunk_index": 9,
-        "distance": 0.4455,
-        "record_type": "pdf",
-        "excerpt": "; 17. 4 a work permit authorization form shall be completed with the maximum duration period not exceeding 12 hours. 17. 5 a copy of each permit to wo"
-      },
-      {
-        "doc_id": "NTPC_Safety_Rules.pdf",
         "chunk_index": 66,
         "distance": 0.5924,
         "record_type": "pdf",
         "excerpt": "workplace 07 - list of employees trained in safety at the commencement of execution of the job ; details of training \u2013 its module and contents 08 - sa"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 9,
+        "distance": 0.4455,
+        "record_type": "pdf",
+        "excerpt": "; 17. 4 a work permit authorization form shall be completed with the maximum duration period not exceeding 12 hours. 17. 5 a copy of each permit to wo"
       }
     ],
     "llm_sources": [
       {
-        "doc_id": "OISD-116.txt",
-        "excerpt": "hot work permits are mandatory for any work involving open flames, sparks, or temperatures exceeding 30\u00b0c above ambient in hazardous areas."
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "area has to be cleared of any flammables and combustible material. 7 electrical equipment to be protected and grounded. 8 are fire - fighting equipment - extinguishers, water, sand buckets etc, located nearby for ready in case of any mishap? 9 gas cy"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "workplace 07 - list of employees trained in safety at the commencement of execution of the job ; details of training \u2013 its module and contents 08 - safety training targets, schedules, methods to be adopted for providing safety training to all employe"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "; 17. 4 a work permit authorization form shall be completed with the maximum duration period not exceeding 12 hours. 17. 5 a copy of each permit to work ( ptw ) shall be displayed near to work are ( on ptw display board ) in close proximity to the ac"
       }
-    ]
+    ],
+    "similarity": 0.6296571150949372,
+    "status": "FAIL"
   },
   {
     "id": "Q004",
     "question": "How many emergency response teams are required per shift?",
-    "status": "PASS",
-    "similarity": 0.8156,
     "expected_source_docs": [
       "OISD-116"
     ],
     "retrieved_source_docs": [
-      "OISD-116.txt"
+      "NTPC_Safety_Rules.pdf",
+      "Bhel-contractor-manual.pdf"
     ],
     "chunk_sources": [
       {
@@ -164,38 +171,47 @@
         "excerpt": "examinations for the working personnel on a regular basis. types of health target frequency examination general health all workers annual examination "
       },
       {
-        "doc_id": "HSE-brochure.pdf",
-        "chunk_index": 24,
-        "distance": 0.6859,
-        "record_type": "pdf",
-        "excerpt": "installations, including solar projects and 10. 5 mw off - grid projects. internal safety audit by multi - disciplinary objective. keen focus on train"
-      },
-      {
         "doc_id": "Bhel-contractor-manual.pdf",
         "chunk_index": 56,
         "distance": 0.5939,
         "record_type": "pdf",
         "excerpt": "services provided by suppliers / sub - contractors and to ensure their training, if required. to ensure effective implementation of emergency prepared"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 7,
+        "distance": 0.6577,
+        "record_type": "pdf",
+        "excerpt": "any liquid or solid used as building material ; 13 ( f ) fire and explosion causing damage to any place on construction site where building workers ar"
       }
     ],
     "llm_sources": [
       {
-        "doc_id": "OISD-116.txt",
-        "excerpt": "minimum of 2 emergency response teams per shift"
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "examinations for the working personnel on a regular basis. types of health target frequency examination general health all workers annual examination occupational health worker engaging in noise, dust, examination vibration, harmful light generating "
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "services provided by suppliers / sub - contractors and to ensure their training, if required. to ensure effective implementation of emergency preparedness response plans and periodical mock drills. to stop work as & when identified unsafe. to facilit"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "any liquid or solid used as building material ; 13 ( f ) fire and explosion causing damage to any place on construction site where building workers are employed ; ( g ) spillage or leakage of any hazardous substance and damage to their container ; ( "
       }
-    ]
+    ],
+    "similarity": 0.28060721465218774,
+    "status": "FAIL"
   },
   {
     "id": "Q005",
     "question": "What are the PPE requirements for mining workers?",
-    "status": "PASS",
-    "similarity": 0.8799,
     "expected_source_docs": [
       "DGMS-2023-01"
     ],
     "retrieved_source_docs": [
+      "DGMS-2022-05.txt",
       "DGMS-2023-01.txt",
-      "FA-SEC-41B.txt"
+      "Bhel-contractor-manual.pdf"
     ],
     "chunk_sources": [
       {
@@ -223,24 +239,30 @@
     "llm_sources": [
       {
         "doc_id": "DGMS-2023-01.txt",
-        "excerpt": "all workers entering mining areas must wear mandatory ppe"
+        "excerpt": "dgms circular 2023 - 01 : safety in mining operations = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2023 - 01 : safety in mining operations subject : mandatory safety equipment and p"
       },
       {
-        "doc_id": "FA-SEC-41B.txt",
-        "excerpt": "adequate and suitable ppe for all workers"
+        "doc_id": "DGMS-2022-05.txt",
+        "excerpt": "dgms circular 2022 - 05 : ventilation requirements = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2022 - 05 : ventilation requirements in underground mines subject : minimum ventilation sta"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "audit findings with status of implementation of recommendations should be discussed. 5. 10 safety equipment / personnel protective equipment the type of safety equipment to be used is decided based on the job requirement. selection should be made bas"
       }
-    ]
+    ],
+    "similarity": 0.7101175599049397,
+    "status": "PASS"
   },
   {
     "id": "Q006",
     "question": "How often must safety officers be appointed in a factory?",
-    "status": "PASS",
-    "similarity": 0.7769,
     "expected_source_docs": [
       "FA-SEC-7A"
     ],
     "retrieved_source_docs": [
-      "FA-SEC-7A.txt"
+      "FA-SEC-41C.txt",
+      "FA-SEC-7A.txt",
+      "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf"
     ],
     "chunk_sources": [
       {
@@ -268,20 +290,30 @@
     "llm_sources": [
       {
         "doc_id": "FA-SEC-7A.txt",
-        "excerpt": "every factory having 1000 or more"
+        "excerpt": "factory act section 7a : safety officers = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = factory act - section 7a : appointment of safety officers 1. every factory having 1000 or more workers must employ a qualified safe"
+      },
+      {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "excerpt": "premises and publicise them in the manner prescribed by the state government among the workers and the general public living in the vicinity. 85. every occupier of a factory involving any hazardous process shall \u2014 specific responsibility ( a ) mainta"
+      },
+      {
+        "doc_id": "FA-SEC-41C.txt",
+        "excerpt": "factory act section 41c : right to workers = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = factory act - section 41c : rights of workers 1. workers have the right to : a ) be informed about hazards at their workplace"
       }
-    ]
+    ],
+    "similarity": 0.7813454782302823,
+    "status": "PASS"
   },
   {
     "id": "Q007",
     "question": "What is the minimum fresh air supply requirement for underground mines?",
-    "status": "PASS",
-    "similarity": 0.925,
     "expected_source_docs": [
       "DGMS-2022-05"
     ],
     "retrieved_source_docs": [
-      "DGMS-2022-05.txt"
+      "DGMS-2023-01.txt",
+      "DGMS-2022-05.txt",
+      "NTPC_Safety_Rules.pdf"
     ],
     "chunk_sources": [
       {
@@ -309,20 +341,29 @@
     "llm_sources": [
       {
         "doc_id": "DGMS-2022-05.txt",
-        "excerpt": "fresh air supply must be maintained at a minimum of 0.1 m\u00b3/s per worker"
+        "excerpt": "dgms circular 2022 - 05 : ventilation requirements = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2022 - 05 : ventilation requirements in underground mines subject : minimum ventilation sta"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "the maximum working pressure of such bulk head or diaphragm and such bulk head or diaphragm shall be tested before its each use by a responsible person to ensure that such bulk head or diaphragm is in proper working order ; b. such responsible person"
+      },
+      {
+        "doc_id": "DGMS-2023-01.txt",
+        "excerpt": "dgms circular 2023 - 01 : safety in mining operations = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2023 - 01 : safety in mining operations subject : mandatory safety equipment and p"
       }
-    ]
+    ],
+    "similarity": 0.652611812894463,
+    "status": "PASS"
   },
   {
     "id": "Q008",
     "question": "How frequently must fire drills be conducted in a factory?",
-    "status": "PASS",
-    "similarity": 0.9667,
     "expected_source_docs": [
       "FA-SEC-36"
     ],
     "retrieved_source_docs": [
-      "FA-SEC-36.txt"
+      "FA-SEC-36.txt",
+      "Bhel-contractor-manual.pdf"
     ],
     "chunk_sources": [
       {
@@ -350,20 +391,30 @@
     "llm_sources": [
       {
         "doc_id": "FA-SEC-36.txt",
-        "excerpt": "fire drills must be conducted at least once every quarter"
+        "excerpt": "factory act section 36 : fire precautions = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = factory act - section 36 : precautions against fire 1. every factory must take adequate precautions against fire. 2. fire exting"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "for critical jobs. conduct investigation of all incident / dangerous occurrences & recommend appropriate safety measures. advice & co - ordinate for implementation of hse permit systems, ocps & mps. convene hse meeting & minute the proceeding for cir"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "1. 1. 2, 5. 2. 7, 5. 3. 10, 5. 6. 12 and 5. 7. 8 of induction. this program should cover at oisd - std - 154 on'safety aspects in least the following : functional training'i ) responsibility of contractor for safety c. contractor worker of their pers"
       }
-    ]
+    ],
+    "similarity": 0.5525748179986818,
+    "status": "PASS"
   },
   {
     "id": "Q009",
     "question": "What are the requirements for HAZOP studies?",
-    "status": "PASS",
-    "similarity": 0.8541,
     "expected_source_docs": [
       "OISD-118"
     ],
     "retrieved_source_docs": [
-      "OISD-118_Section2.txt"
+      "DGMS-2022-05.txt",
+      "OISD-118_Section2.txt",
+      "Bhel-contractor-manual.pdf"
     ],
     "chunk_sources": [
       {
@@ -391,20 +442,30 @@
     "llm_sources": [
       {
         "doc_id": "OISD-118_Section2.txt",
-        "excerpt": "hazop studies are required for all new installations and modifications to existing units"
+        "excerpt": "oisd - 118 : process safety management \u2014 section 2 : process hazard analysis 2. 1 hazop studies are required for all new installations and modifications to existing units. 2. 2 hazop studies must be revalidated every 5 years. 2. 3 all action items re"
+      },
+      {
+        "doc_id": "DGMS-2022-05.txt",
+        "excerpt": "dgms circular 2022 - 05 : ventilation requirements = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2022 - 05 : ventilation requirements in underground mines subject : minimum ventilation sta"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": ", trained and in state of health to vii ) to ensure training of the commensurate with the requirements contractor workforce, medical of the job. examination, and proper usage of safety equipment. iii ) to ensure that the tools / tackles and machinery"
       }
-    ]
+    ],
+    "similarity": 0.6122816811308789,
+    "status": "PASS"
   },
   {
     "id": "Q010",
     "question": "What is the inspection frequency for high-pressure piping systems?",
-    "status": "PASS",
-    "similarity": 0.941,
     "expected_source_docs": [
       "OISD-119"
     ],
     "retrieved_source_docs": [
-      "OISD-119.txt"
+      "OISD-117.txt",
+      "OISD-119.txt",
+      "OISD-116.txt"
     ],
     "chunk_sources": [
       {
@@ -432,19 +493,28 @@
     "llm_sources": [
       {
         "doc_id": "OISD-119.txt",
-        "excerpt": "high-pressure piping (>15 bar) requires annual thickness measurement"
+        "excerpt": "oisd - 119 : inspection and maintenance of piping systems = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 119 inspection and maintenance of piping systems section 1 : piping classific"
+      },
+      {
+        "doc_id": "OISD-116.txt",
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 116 safety guidelines for petroleum refineries section 1 : scope and applicability "
+      },
+      {
+        "doc_id": "OISD-117.txt",
+        "excerpt": "oisd - 117 : storage tank integrity management = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 117 storage tank integrity management section 1 : tank classification 1. 1 tanks tnk - t01 and tnk - t02 are c"
       }
-    ]
+    ],
+    "similarity": 0.7947342698252201,
+    "status": "PASS"
   },
   {
     "id": "Q011",
     "question": "How quickly must serious factory accidents be reported?",
-    "status": "PASS",
-    "similarity": 0.8769,
     "expected_source_docs": [
       "FA-SEC-40A"
     ],
     "retrieved_source_docs": [
+      "Bhel-contractor-manual.pdf",
       "FA-SEC-40A.txt"
     ],
     "chunk_sources": [
@@ -473,20 +543,30 @@
     "llm_sources": [
       {
         "doc_id": "FA-SEC-40A.txt",
-        "excerpt": "reported to the factory inspector within 12 hours"
+        "excerpt": "factory act section 40a : accident reporting = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = factory act - section 40a : accident reporting and investigation 1. all accidents resulting in death or serious injury "
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "or any other intoxication shall not be permitted to work and sent out of the work area. they shall not be permitted to carry cigarettes, lighter, tobacco powder, drugs, intoxicating drinks etc workmen shall not be permitted to smoke in work area - sm"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "closure / blockage subject : presenter : 5. 8 incident reporting and date : investigation system time : from \u2026.. to \u2026.. content in brief : all the incidents including near - miss should be reported immediately by contractor \u2019 s participant \u2019 s name s"
       }
-    ]
+    ],
+    "similarity": 0.6302064287994509,
+    "status": "PASS"
   },
   {
     "id": "Q012",
     "question": "What rights do workers have regarding workplace safety?",
-    "status": "PASS",
-    "similarity": 0.8725,
     "expected_source_docs": [
       "FA-SEC-41C"
     ],
     "retrieved_source_docs": [
-      "FA-SEC-41C.txt"
+      "FA-SEC-41C.txt",
+      "Bhel-contractor-manual.pdf",
+      "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf"
     ],
     "chunk_sources": [
       {
@@ -513,21 +593,31 @@
     ],
     "llm_sources": [
       {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "excerpt": "workers ; ( f ) not do, wilfully and without reasonable cause, anything, likely to endanger himself or others ; and ( g ) perform such other duties as may be prescribed by the appropriate government. 14. ( 1 ) every employee in an establishment shall"
+      },
+      {
         "doc_id": "FA-SEC-41C.txt",
-        "excerpt": "workers have the right to be informed"
+        "excerpt": "factory act section 41c : right to workers = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = factory act - section 41c : rights of workers 1. workers have the right to : a ) be informed about hazards at their workplace"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "##ward incidents. spot photograph may be preferably page 495 of 6701 i ) workers should be adequately and equipment and protective suitably : clothing provided to the worker ; ( a ) informed of potential safety and ( f ) general measures for personal"
       }
-    ]
+    ],
+    "similarity": 0.8658340200625789,
+    "status": "PASS"
   },
   {
     "id": "Q013",
     "question": "What must be fenced according to Factory Act Section 38?",
-    "status": "PASS",
-    "similarity": 0.6932,
     "expected_source_docs": [
       "FA-SEC-38"
     ],
     "retrieved_source_docs": [
-      "FA-SEC-38.txt"
+      "FA-SEC-38.txt",
+      "FA-SEC-36.txt",
+      "FA-SEC-41B.txt"
     ],
     "chunk_sources": [
       {
@@ -555,20 +645,29 @@
     "llm_sources": [
       {
         "doc_id": "FA-SEC-38.txt",
-        "excerpt": "all moving parts including flywheels, gears, and pulleys"
+        "excerpt": "factory act section 38 : fencing of machinery = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = factory act - section 38 : fencing of machinery 1. every dangerous part of any machinery must be securely fenced. 2."
+      },
+      {
+        "doc_id": "FA-SEC-36.txt",
+        "excerpt": "factory act section 36 : fire precautions = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = factory act - section 36 : precautions against fire 1. every factory must take adequate precautions against fire. 2. fire exting"
+      },
+      {
+        "doc_id": "FA-SEC-41B.txt",
+        "excerpt": "factory act section 41b : hazardous processes = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = factory act - section 41b : safety measures for hazardous processes 1. factories must provide the following for haza"
       }
-    ]
+    ],
+    "similarity": 0.7027694171928558,
+    "status": "PASS"
   },
   {
     "id": "Q014",
     "question": "What safety measures are required for hazardous processes?",
-    "status": "PASS",
-    "similarity": 0.7443,
     "expected_source_docs": [
       "FA-SEC-41B"
     ],
     "retrieved_source_docs": [
-      "FA-SEC-41B.txt"
+      "FA-SEC-41B.txt",
+      "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf"
     ],
     "chunk_sources": [
       {
@@ -596,21 +695,30 @@
     "llm_sources": [
       {
         "doc_id": "FA-SEC-41B.txt",
-        "excerpt": "factories must provide the following"
+        "excerpt": "factory act section 41b : hazardous processes = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = factory act - section 41b : safety measures for hazardous processes 1. factories must provide the following for haza"
+      },
+      {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "excerpt": "on which exposes any of the persons employed in it to a serious risk of bodily injury, poisoning or disease, for \u2014 ( a ) specifying the manufacturing process or operation and declaring it to be dangerous ; ( b ) prohibiting or restricting the employm"
+      },
+      {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "excerpt": "premises and publicise them in the manner prescribed by the state government among the workers and the general public living in the vicinity. 85. every occupier of a factory involving any hazardous process shall \u2014 specific responsibility ( a ) mainta"
       }
-    ]
+    ],
+    "similarity": 0.7321884621087265,
+    "status": "PASS"
   },
   {
     "id": "Q015",
     "question": "What are the requirements for gas monitoring in underground mines?",
-    "status": "PASS",
-    "similarity": 0.7699,
     "expected_source_docs": [
       "DGMS-2022-05"
     ],
     "retrieved_source_docs": [
-      "DGMS-2023-01.txt",
-      "DGMS-2022-05.txt"
+      "DGMS-TC-15.txt",
+      "DGMS-2022-05.txt",
+      "DGMS-2023-01.txt"
     ],
     "chunk_sources": [
       {
@@ -638,24 +746,29 @@
     "llm_sources": [
       {
         "doc_id": "DGMS-2022-05.txt",
-        "excerpt": "methane and carbon monoxide"
+        "excerpt": "dgms circular 2022 - 05 : ventilation requirements = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2022 - 05 : ventilation requirements in underground mines subject : minimum ventilation sta"
       },
       {
         "doc_id": "DGMS-2023-01.txt",
-        "excerpt": "gas monitoring equipment must be checked daily"
+        "excerpt": "dgms circular 2023 - 01 : safety in mining operations = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2023 - 01 : safety in mining operations subject : mandatory safety equipment and p"
+      },
+      {
+        "doc_id": "DGMS-TC-15.txt",
+        "excerpt": "dgms technical circular 15 : ground control management = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms technical circular 15 : ground control management subject : roof support and ground "
       }
-    ]
+    ],
+    "similarity": 0.5997983904692594,
+    "status": "PASS"
   },
   {
     "id": "Q016",
     "question": "How often must safety training be conducted for mining workers?",
-    "status": "PASS",
-    "similarity": 0.8205,
     "expected_source_docs": [
       "DGMS-2023-01"
     ],
     "retrieved_source_docs": [
-      "DGMS-2023-01.txt"
+      "DGMS-2023-01.txt",
+      "Bhel-contractor-manual.pdf"
     ],
     "chunk_sources": [
       {
@@ -683,20 +796,30 @@
     "llm_sources": [
       {
         "doc_id": "DGMS-2023-01.txt",
-        "excerpt": "40 hours safety induction, refresher every 6 months, monthly drills"
+        "excerpt": "dgms circular 2023 - 01 : safety in mining operations = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2023 - 01 : safety in mining operations subject : mandatory safety equipment and p"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "induction training form ( format no. hsep : 13 - f02 ) to declare that he had understood the content and shall abide to follow and comply with safe work practices. they may only then be qualified to be issued with a personal i. d. card, for access to"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "the execution performance of permit to work procedure and report to project / construction management. withdraw the permit when work condition changed, or nonconformance to permit requirement was found. 15. 1. 3 ptw training ptw awareness training wi"
       }
-    ]
+    ],
+    "similarity": 0.5942873927541718,
+    "status": "PASS"
   },
   {
     "id": "Q017",
     "question": "What are the electrical safety requirements per OISD-130?",
-    "status": "PASS",
-    "similarity": 0.9868,
     "expected_source_docs": [
       "OISD-130"
     ],
     "retrieved_source_docs": [
-      "OISD-130.txt"
+      "OISD-130.txt",
+      "Bhel-contractor-manual.pdf",
+      "OISD-116.txt"
     ],
     "chunk_sources": [
       {
@@ -724,20 +847,30 @@
     "llm_sources": [
       {
         "doc_id": "OISD-130.txt",
-        "excerpt": "electrical equipment in hazardous areas must be certified"
+        "excerpt": "oisd - 130 : safety in electrical systems = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 130 safety in electrical systems section 1 : electrical safety standards 1. 1 all electrical equipment in hazardous areas mus"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "1. 1. 2, 5. 2. 7, 5. 3. 10, 5. 6. 12 and 5. 7. 8 of induction. this program should cover at oisd - std - 154 on'safety aspects in least the following : functional training'i ) responsibility of contractor for safety c. contractor worker of their pers"
+      },
+      {
+        "doc_id": "OISD-116.txt",
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 116 safety guidelines for petroleum refineries section 1 : scope and applicability "
       }
-    ]
+    ],
+    "similarity": 0.6719606841749821,
+    "status": "PASS"
   },
   {
     "id": "Q018",
     "question": "How should tank classification affect inspection frequency?",
-    "status": "PASS",
-    "similarity": 0.8343,
     "expected_source_docs": [
       "OISD-117"
     ],
     "retrieved_source_docs": [
-      "OISD-117.txt"
+      "OISD-117.txt",
+      "OISD-119.txt",
+      "OISD-116.txt"
     ],
     "chunk_sources": [
       {
@@ -765,12 +898,1121 @@
     "llm_sources": [
       {
         "doc_id": "OISD-117.txt",
-        "excerpt": "Group A tanks: annual internal inspection, biennial external inspection"
+        "excerpt": "oisd - 117 : storage tank integrity management = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 117 storage tank integrity management section 1 : tank classification 1. 1 tanks tnk - t01 and tnk - t02 are c"
       },
       {
-        "doc_id": "OISD-117.txt",
-        "excerpt": "Group B tanks: biennial internal inspection, annual external inspection"
+        "doc_id": "OISD-119.txt",
+        "excerpt": "oisd - 119 : inspection and maintenance of piping systems = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 119 inspection and maintenance of piping systems section 1 : piping classific"
+      },
+      {
+        "doc_id": "OISD-116.txt",
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 116 safety guidelines for petroleum refineries section 1 : scope and applicability "
       }
-    ]
+    ],
+    "similarity": 0.7826225532955842,
+    "status": "PASS"
+  },
+  {
+    "id": "Q019",
+    "question": "What is the current status of permit PRM-2026-5000?",
+    "expected_source_docs": [
+      "permits.csv"
+    ],
+    "retrieved_source_docs": [
+      "permits.csv",
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "permits.csv",
+        "chunk_index": 0,
+        "distance": 0.4918,
+        "record_type": "permits",
+        "excerpt": "[Permits Record PRM-2026-5000]\nPermit Id: PRM-2026-5000\nPermit Type: Line Breaking\nWork Description: Happen fire everything whether ago control milita"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 66,
+        "distance": 0.5237,
+        "record_type": "pdf",
+        "excerpt": "with particular permit for work ( pfw ) at site for ready reference & follow - up. such pfw shall be initially issued for one single shift or expected"
+      },
+      {
+        "doc_id": "permits.csv",
+        "chunk_index": 3,
+        "distance": 0.4289,
+        "record_type": "permits",
+        "excerpt": "[Permits Record PRM-2026-5003]\nPermit Id: PRM-2026-5003\nPermit Type: Electrical Isolation\nWork Description: Ever person pass behavior political option"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "permits.csv",
+        "excerpt": "[Permits Record PRM-2026-5000]\nPermit Id: PRM-2026-5000\nPermit Type: Line Breaking\nWork Description: Happen fire everything whether ago control military trial brother simple.\nLocation: 473 Derek Cliffs\nThompsonmouth, CO 89882\nPlant: Refinery Unit A\nE"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "with particular permit for work ( pfw ) at site for ready reference & follow - up. such pfw shall be initially issued for one single shift or expected duration of normal work and extended further for balance duration, if required. eil / owner can dev"
+      },
+      {
+        "doc_id": "permits.csv",
+        "excerpt": "[Permits Record PRM-2026-5003]\nPermit Id: PRM-2026-5003\nPermit Type: Electrical Isolation\nWork Description: Ever person pass behavior political option oil commercial person top.\nLocation: 10943 Montgomery Burgs\nSmallside, LA 84637\nPlant: Chemical Pla"
+      }
+    ],
+    "similarity": 0.6566008324715524,
+    "status": "PASS"
+  },
+  {
+    "id": "Q020",
+    "question": "What equipment and priority are associated with work order WO-2026-1001?",
+    "expected_source_docs": [
+      "work_orders.csv"
+    ],
+    "retrieved_source_docs": [
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 36,
+        "distance": 0.6378,
+        "record_type": "pdf",
+        "excerpt": ", trained and in state of health to vii ) to ensure training of the commensurate with the requirements contractor workforce, medical of the job. exami"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 42,
+        "distance": 0.6148,
+        "record_type": "pdf",
+        "excerpt": "1. 1. 2, 5. 2. 7, 5. 3. 10, 5. 6. 12 and 5. 7. 8 of induction. this program should cover at oisd - std - 154 on'safety aspects in least the following "
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 40,
+        "distance": 0.6107,
+        "record_type": "pdf",
+        "excerpt": "may be asked to submit site should be leveled, open and free character & antecedents ( c & a ) from any obstructions like verification of individual w"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": ", trained and in state of health to vii ) to ensure training of the commensurate with the requirements contractor workforce, medical of the job. examination, and proper usage of safety equipment. iii ) to ensure that the tools / tackles and machinery"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "1. 1. 2, 5. 2. 7, 5. 3. 10, 5. 6. 12 and 5. 7. 8 of induction. this program should cover at oisd - std - 154 on'safety aspects in least the following : functional training'i ) responsibility of contractor for safety c. contractor worker of their pers"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "may be asked to submit site should be leveled, open and free character & antecedents ( c & a ) from any obstructions like verification of individual worker from construction material or scrap / waste, concerned authorities. exposure to hazards such a"
+      }
+    ],
+    "similarity": 0.31338159449612285,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q021",
+    "question": "What was the injury severity recorded for incident INC-2026-9001?",
+    "expected_source_docs": [
+      "incident_reports.csv"
+    ],
+    "retrieved_source_docs": [
+      "incident_reports.csv",
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 54,
+        "distance": 0.4061,
+        "record_type": "pdf",
+        "excerpt": "the day on which the injury occurred. 5. 1. 6 medical cases medical cases come under non - reportable cases, where owing to illness or other reason th"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 53,
+        "distance": 0.6999,
+        "record_type": "pdf",
+        "excerpt": "the root cause. ensure timely implementation of correction, corrective action and preventive action. 3. 1 goals and targets - o to achieve \u201c zero loss"
+      },
+      {
+        "doc_id": "incident_reports.csv",
+        "chunk_index": 1,
+        "distance": 0.424,
+        "record_type": "incident_reports",
+        "excerpt": "[Incident Reports Record INC-2026-9001]\nIncident Id: INC-2026-9001\nIncident Type: Recordable\nDate: 2026-06-28\nTime: 03:55\nPlant: Steel Mill D\nLocation"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "the day on which the injury occurred. 5. 1. 6 medical cases medical cases come under non - reportable cases, where owing to illness or other reason the employee was absent from work and seeks medical treatment. 5. 1. 7 type of incidents & their repor"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "the root cause. ensure timely implementation of correction, corrective action and preventive action. 3. 1 goals and targets - o to achieve \u201c zero loss time incident at site \u201d o 100 % compliance of all legal / statutory requirements related to ehs. o "
+      },
+      {
+        "doc_id": "incident_reports.csv",
+        "excerpt": "[Incident Reports Record INC-2026-9001]\nIncident Id: INC-2026-9001\nIncident Type: Recordable\nDate: 2026-06-28\nTime: 03:55\nPlant: Steel Mill D\nLocation: PSC 1353, Box 4655\nAPO AA 77252\nEquipment Tag: EQ-2002\nDescription: Surface like term on want auth"
+      }
+    ],
+    "similarity": 0.5252554128220486,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q022",
+    "question": "Who performed the post-maintenance inspection INS-2026-8000 on PUMP-B01?",
+    "expected_source_docs": [
+      "inspection_logs.csv"
+    ],
+    "retrieved_source_docs": [
+      "inspection_logs.csv"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "inspection_logs.csv",
+        "chunk_index": 0,
+        "distance": 0.2964,
+        "record_type": "inspection_logs",
+        "excerpt": "[Inspection Logs Record INS-2026-8000]\nInspection Id: INS-2026-8000\nInspection Type: Post-Maintenance\nPlant: Steel Mill D\nEquipment Tag: PUMP-B01\nInsp"
+      },
+      {
+        "doc_id": "inspection_logs.csv",
+        "chunk_index": 28,
+        "distance": 0.3957,
+        "record_type": "inspection_logs",
+        "excerpt": "[Inspection Logs Record INS-2026-8028]\nInspection Id: INS-2026-8028\nInspection Type: Post-Maintenance\nPlant: Steel Mill D\nEquipment Tag: PUMP-A01\nInsp"
+      },
+      {
+        "doc_id": "inspection_logs.csv",
+        "chunk_index": 1,
+        "distance": 0.4101,
+        "record_type": "inspection_logs",
+        "excerpt": "[Inspection Logs Record INS-2026-8001]\nInspection Id: INS-2026-8001\nInspection Type: Post-Maintenance\nPlant: Refinery Unit A\nEquipment Tag: VAN-V02\nIn"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "inspection_logs.csv",
+        "excerpt": "[Inspection Logs Record INS-2026-8000]\nInspection Id: INS-2026-8000\nInspection Type: Post-Maintenance\nPlant: Steel Mill D\nEquipment Tag: PUMP-B01\nInspector: Mrs. Carrie Moore\nInspection Date: 2026-04-23\nShift: Swing Shift\nFindings: When discussion if"
+      },
+      {
+        "doc_id": "inspection_logs.csv",
+        "excerpt": "[Inspection Logs Record INS-2026-8028]\nInspection Id: INS-2026-8028\nInspection Type: Post-Maintenance\nPlant: Steel Mill D\nEquipment Tag: PUMP-A01\nInspector: Brian Turner\nInspection Date: 2026-07-02\nShift: Night Shift\nFindings: Run join police maintai"
+      },
+      {
+        "doc_id": "inspection_logs.csv",
+        "excerpt": "[Inspection Logs Record INS-2026-8001]\nInspection Id: INS-2026-8001\nInspection Type: Post-Maintenance\nPlant: Refinery Unit A\nEquipment Tag: VAN-V02\nInspector: Christina Vargas\nInspection Date: 2026-04-11\nShift: Day Shift\nFindings: Relate day sell.\nFi"
+      }
+    ],
+    "similarity": 0.5985390651887484,
+    "status": "PASS"
+  },
+  {
+    "id": "Q023",
+    "question": "What permit type is PRM-2026-5002?",
+    "expected_source_docs": [
+      "permits.csv"
+    ],
+    "retrieved_source_docs": [
+      "permits.csv"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "permits.csv",
+        "chunk_index": 2,
+        "distance": 0.4103,
+        "record_type": "permits",
+        "excerpt": "[Permits Record PRM-2026-5002]\nPermit Id: PRM-2026-5002\nPermit Type: Work at Height\nWork Description: Politics last quite general there sister policy "
+      },
+      {
+        "doc_id": "permits.csv",
+        "chunk_index": 8,
+        "distance": 0.3391,
+        "record_type": "permits",
+        "excerpt": "[Permits Record PRM-2026-5008]\nPermit Id: PRM-2026-5008\nPermit Type: Confined Space Entry\nWork Description: Turn their save artist catch debate foot p"
+      },
+      {
+        "doc_id": "permits.csv",
+        "chunk_index": 3,
+        "distance": 0.3658,
+        "record_type": "permits",
+        "excerpt": "[Permits Record PRM-2026-5003]\nPermit Id: PRM-2026-5003\nPermit Type: Electrical Isolation\nWork Description: Ever person pass behavior political option"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "permits.csv",
+        "excerpt": "[Permits Record PRM-2026-5002]\nPermit Id: PRM-2026-5002\nPermit Type: Work at Height\nWork Description: Politics last quite general there sister policy consider.\nLocation: Unit 6801 Box 8242\nDPO AE 42792\nPlant: Refinery Unit A\nEquipment Tag: FIL-F01\nIs"
+      },
+      {
+        "doc_id": "permits.csv",
+        "excerpt": "[Permits Record PRM-2026-5008]\nPermit Id: PRM-2026-5008\nPermit Type: Confined Space Entry\nWork Description: Turn their save artist catch debate foot production moment finish community.\nLocation: PSC 5854, Box 9733\nAPO AA 73650\nPlant: Power Plant B\nEq"
+      },
+      {
+        "doc_id": "permits.csv",
+        "excerpt": "[Permits Record PRM-2026-5003]\nPermit Id: PRM-2026-5003\nPermit Type: Electrical Isolation\nWork Description: Ever person pass behavior political option oil commercial person top.\nLocation: 10943 Montgomery Burgs\nSmallside, LA 84637\nPlant: Chemical Pla"
+      }
+    ],
+    "similarity": 0.6440551830030421,
+    "status": "PASS"
+  },
+  {
+    "id": "Q024",
+    "question": "Which regulation applies to work order WO-2026-1001 and what hazard is associated with it?",
+    "expected_source_docs": [
+      "work_orders.csv",
+      "OISD-117"
+    ],
+    "retrieved_source_docs": [
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 41,
+        "distance": 0.5319,
+        "record_type": "pdf",
+        "excerpt": "##ward incidents. spot photograph may be preferably page 495 of 6701 i ) workers should be adequately and equipment and protective suitably : clothing"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 38,
+        "distance": 0.4854,
+        "record_type": "pdf",
+        "excerpt": "in case the same is outside the limits workers to jobs in commensuration of authority, it should be reported to with their qualification, experience a"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 42,
+        "distance": 0.4929,
+        "record_type": "pdf",
+        "excerpt": "1. 1. 2, 5. 2. 7, 5. 3. 10, 5. 6. 12 and 5. 7. 8 of induction. this program should cover at oisd - std - 154 on'safety aspects in least the following "
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "##ward incidents. spot photograph may be preferably page 495 of 6701 i ) workers should be adequately and equipment and protective suitably : clothing provided to the worker ; ( a ) informed of potential safety and ( f ) general measures for personal"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "in case the same is outside the limits workers to jobs in commensuration of authority, it should be reported to with their qualification, experience and owner \u2019 s engineer - in - charge state of health. immediately. v ) to ensure that the workers xv "
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "1. 1. 2, 5. 2. 7, 5. 3. 10, 5. 6. 12 and 5. 7. 8 of induction. this program should cover at oisd - std - 154 on'safety aspects in least the following : functional training'i ) responsibility of contractor for safety c. contractor worker of their pers"
+      }
+    ],
+    "similarity": 0.31228095419620566,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q025",
+    "question": "Which equipment is covered by permit PRM-2026-5000 and which regulation governs it?",
+    "expected_source_docs": [
+      "permits.csv",
+      "OISD-119"
+    ],
+    "retrieved_source_docs": [
+      "NTPC_Safety_Rules.pdf",
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 2,
+        "distance": 0.5615,
+        "record_type": "pdf",
+        "excerpt": ", plant, measures required at the workplace. equipment, tools, machinery or workplaces in which a dangerous ii ) provide and maintain workplaces, defe"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 9,
+        "distance": 0.5953,
+        "record_type": "pdf",
+        "excerpt": ". oisd - 192 page 452 of 6701 ix ) organise for and remain always substances, running machines or prepared to take immediate steps to vehicles and hea"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 67,
+        "distance": 0.4153,
+        "record_type": "pdf",
+        "excerpt": "area has to be cleared of any flammables and combustible material. 7 electrical equipment to be protected and grounded. 8 are fire - fighting equipmen"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": ", plant, measures required at the workplace. equipment, tools, machinery or workplaces in which a dangerous ii ) provide and maintain workplaces, defect has been found should not be plant, equipment, tools and used until the defect has been machinery"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": ". oisd - 192 page 452 of 6701 ix ) organise for and remain always substances, running machines or prepared to take immediate steps to vehicles and heavy equipment etc. stop the operation and evacuate xvii ) obtain the necessary workers as appropriate"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "area has to be cleared of any flammables and combustible material. 7 electrical equipment to be protected and grounded. 8 are fire - fighting equipment - extinguishers, water, sand buckets etc, located nearby for ready in case of any mishap? 9 gas cy"
+      }
+    ],
+    "similarity": 0.2895955085120529,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q026",
+    "question": "Which permits have been issued for equipment at Refinery Unit A?",
+    "expected_source_docs": [
+      "permits.csv"
+    ],
+    "retrieved_source_docs": [
+      "permits.csv",
+      "NTPC_Safety_Rules.pdf",
+      "OISD-116.txt"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "OISD-116.txt",
+        "chunk_index": 0,
+        "distance": 0.4271,
+        "record_type": "txt",
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 67,
+        "distance": 0.418,
+        "record_type": "pdf",
+        "excerpt": "area has to be cleared of any flammables and combustible material. 7 electrical equipment to be protected and grounded. 8 are fire - fighting equipmen"
+      },
+      {
+        "doc_id": "permits.csv",
+        "chunk_index": 2,
+        "distance": 0.4072,
+        "record_type": "permits",
+        "excerpt": "[Permits Record PRM-2026-5002]\nPermit Id: PRM-2026-5002\nPermit Type: Work at Height\nWork Description: Politics last quite general there sister policy "
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "OISD-116.txt",
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 116 safety guidelines for petroleum refineries section 1 : scope and applicability "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "area has to be cleared of any flammables and combustible material. 7 electrical equipment to be protected and grounded. 8 are fire - fighting equipment - extinguishers, water, sand buckets etc, located nearby for ready in case of any mishap? 9 gas cy"
+      },
+      {
+        "doc_id": "permits.csv",
+        "excerpt": "[Permits Record PRM-2026-5002]\nPermit Id: PRM-2026-5002\nPermit Type: Work at Height\nWork Description: Politics last quite general there sister policy consider.\nLocation: Unit 6801 Box 8242\nDPO AE 42792\nPlant: Refinery Unit A\nEquipment Tag: FIL-F01\nIs"
+      }
+    ],
+    "similarity": 0.526321457550229,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q027",
+    "question": "Which inspection found Critical findings on EQ-1001 and which regulation does it reference?",
+    "expected_source_docs": [
+      "inspection_logs.csv"
+    ],
+    "retrieved_source_docs": [
+      "inspection_logs.csv"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "inspection_logs.csv",
+        "chunk_index": 2,
+        "distance": 0.3645,
+        "record_type": "inspection_logs",
+        "excerpt": "[Inspection Logs Record INS-2026-8002]\nInspection Id: INS-2026-8002\nInspection Type: Regulatory\nPlant: Chemical Plant C\nEquipment Tag: EQ-1001\nInspect"
+      },
+      {
+        "doc_id": "inspection_logs.csv",
+        "chunk_index": 27,
+        "distance": 0.3987,
+        "record_type": "inspection_logs",
+        "excerpt": "[Inspection Logs Record INS-2026-8027]\nInspection Id: INS-2026-8027\nInspection Type: Emergency\nPlant: Steel Mill D\nEquipment Tag: EQ-4001\nInspector: C"
+      },
+      {
+        "doc_id": "inspection_logs.csv",
+        "chunk_index": 20,
+        "distance": 0.3805,
+        "record_type": "inspection_logs",
+        "excerpt": "[Inspection Logs Record INS-2026-8020]\nInspection Id: INS-2026-8020\nInspection Type: Pre-Startup\nPlant: Refinery Unit A\nEquipment Tag: EQ-3001\nInspect"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "inspection_logs.csv",
+        "excerpt": "[Inspection Logs Record INS-2026-8002]\nInspection Id: INS-2026-8002\nInspection Type: Regulatory\nPlant: Chemical Plant C\nEquipment Tag: EQ-1001\nInspector: Brian Wiggins\nInspection Date: 2026-06-20\nShift: Night Shift\nFindings: For leader energy televis"
+      },
+      {
+        "doc_id": "inspection_logs.csv",
+        "excerpt": "[Inspection Logs Record INS-2026-8027]\nInspection Id: INS-2026-8027\nInspection Type: Emergency\nPlant: Steel Mill D\nEquipment Tag: EQ-4001\nInspector: Charles Bush\nInspection Date: 2026-06-26\nShift: Day Shift\nFindings: Suffer team whether health.\nFindi"
+      },
+      {
+        "doc_id": "inspection_logs.csv",
+        "excerpt": "[Inspection Logs Record INS-2026-8020]\nInspection Id: INS-2026-8020\nInspection Type: Pre-Startup\nPlant: Refinery Unit A\nEquipment Tag: EQ-3001\nInspector: William Miller\nInspection Date: 2026-06-11\nShift: Day Shift\nFindings: Card star avoid nothing it"
+      }
+    ],
+    "similarity": 0.5540919840682262,
+    "status": "PASS"
+  },
+  {
+    "id": "Q028",
+    "question": "Which work orders reference OISD-117 and which equipment do they cover?",
+    "expected_source_docs": [
+      "work_orders.csv"
+    ],
+    "retrieved_source_docs": [
+      "Bhel-contractor-manual.pdf",
+      "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 9,
+        "distance": 0.5381,
+        "record_type": "pdf",
+        "excerpt": ". oisd - 192 page 452 of 6701 ix ) organise for and remain always substances, running machines or prepared to take immediate steps to vehicles and hea"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 2,
+        "distance": 0.5219,
+        "record_type": "pdf",
+        "excerpt": ", plant, measures required at the workplace. equipment, tools, machinery or workplaces in which a dangerous ii ) provide and maintain workplaces, defe"
+      },
+      {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "chunk_index": 62,
+        "distance": 0.594,
+        "record_type": "pdf",
+        "excerpt": "and working in dangerous or harmful environments and the precautions to be taken in connection with such handling ; ( zzc ) providing for the work in "
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": ". oisd - 192 page 452 of 6701 ix ) organise for and remain always substances, running machines or prepared to take immediate steps to vehicles and heavy equipment etc. stop the operation and evacuate xvii ) obtain the necessary workers as appropriate"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": ", plant, measures required at the workplace. equipment, tools, machinery or workplaces in which a dangerous ii ) provide and maintain workplaces, defect has been found should not be plant, equipment, tools and used until the defect has been machinery"
+      },
+      {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "excerpt": "and working in dangerous or harmful environments and the precautions to be taken in connection with such handling ; ( zzc ) providing for the work in connection with cleaning, chipping, painting, operations and precautions to be taken in connection w"
+      }
+    ],
+    "similarity": 0.3355091902303691,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q029",
+    "question": "Which open work order covers equipment EQ-1001 and which regulation does it reference?",
+    "expected_source_docs": [
+      "work_orders.csv",
+      "OISD-116"
+    ],
+    "retrieved_source_docs": [
+      "NTPC_Safety_Rules.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 1,
+        "distance": 0.5438,
+        "record_type": "pdf",
+        "excerpt": "incorporated in the planning stage of their mobilization, execution, installation of machines, equipment, storage, etc., and initiate and maintain saf"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 8,
+        "distance": 0.5735,
+        "record_type": "pdf",
+        "excerpt": "examinations for the working personnel on a regular basis. types of health target frequency examination general health all workers annual examination "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 66,
+        "distance": 0.5582,
+        "record_type": "pdf",
+        "excerpt": "workplace 07 - list of employees trained in safety at the commencement of execution of the job ; details of training \u2013 its module and contents 08 - sa"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "incorporated in the planning stage of their mobilization, execution, installation of machines, equipment, storage, etc., and initiate and maintain safety programs. it is desirable to have a planned programme and secure adequate cooperation of senior "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "examinations for the working personnel on a regular basis. types of health target frequency examination general health all workers annual examination occupational health worker engaging in noise, dust, examination vibration, harmful light generating "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "workplace 07 - list of employees trained in safety at the commencement of execution of the job ; details of training \u2013 its module and contents 08 - safety training targets, schedules, methods to be adopted for providing safety training to all employe"
+      }
+    ],
+    "similarity": 0.302112537164256,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q030",
+    "question": "Is there a documented requirement for lockout/tagout procedures?",
+    "expected_source_docs": [
+      "OISD-130"
+    ],
+    "retrieved_source_docs": [
+      "OISD-118_Section3.txt",
+      "OISD-130.txt",
+      "NTPC_Safety_Rules.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "OISD-130.txt",
+        "chunk_index": 0,
+        "distance": 0.6509,
+        "record_type": "txt",
+        "excerpt": "oisd - 130 : safety in electrical systems = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 130 safety in electrical "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 11,
+        "distance": 0.6931,
+        "record_type": "pdf",
+        "excerpt": "temporary fire protection against hazards they introduce to the site ( work areas, storage areas, and temporary facilities under their responsibilitie"
+      },
+      {
+        "doc_id": "OISD-118_Section3.txt",
+        "chunk_index": 0,
+        "distance": 0.5051,
+        "record_type": "txt",
+        "excerpt": "oisd - 118 : process safety management \u2014 section 3 : operating procedures 3. 1 written operating procedures are required for all process units. 3. 2 p"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "OISD-130.txt",
+        "excerpt": "oisd - 130 : safety in electrical systems = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 130 safety in electrical systems section 1 : electrical safety standards 1. 1 all electrical equipment in hazardous areas mus"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "temporary fire protection against hazards they introduce to the site ( work areas, storage areas, and temporary facilities under their responsibilities ). fire extinguishers shall be inspected at least annually by a certified person and visually insp"
+      },
+      {
+        "doc_id": "OISD-118_Section3.txt",
+        "excerpt": "oisd - 118 : process safety management \u2014 section 3 : operating procedures 3. 1 written operating procedures are required for all process units. 3. 2 procedures for handling deviations must be documented and approved. 3. 3 operators are required to be"
+      }
+    ],
+    "similarity": 0.6498604506479398,
+    "status": "PASS"
+  },
+  {
+    "id": "Q031",
+    "question": "Is there a documented requirement for inspecting fire fighting equipment?",
+    "expected_source_docs": [
+      "OISD-116"
+    ],
+    "retrieved_source_docs": [
+      "NTPC_Safety_Rules.pdf",
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 32,
+        "distance": 0.404,
+        "record_type": "pdf",
+        "excerpt": "##carbon / risk of fire. for carrying out other hazardous chemicals shall be done jobs also, oisd - std - 105 should be after proper gas freeing and f"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 37,
+        "distance": 0.4984,
+        "record_type": "pdf",
+        "excerpt": "identify areas of operations where applicable as per laws / legislation at specialized training is required to deal site and also arrange for workmen "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 11,
+        "distance": 0.4892,
+        "record_type": "pdf",
+        "excerpt": "temporary fire protection against hazards they introduce to the site ( work areas, storage areas, and temporary facilities under their responsibilitie"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "##carbon / risk of fire. for carrying out other hazardous chemicals shall be done jobs also, oisd - std - 105 should be after proper gas freeing and followed strictly. verifying the same with the vi ) fire - extinguishing equipment should explosive -"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "identify areas of operations where applicable as per laws / legislation at specialized training is required to deal site and also arrange for workmen with potential dangers. compensation insurance, third party liability insurance, registration under "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "temporary fire protection against hazards they introduce to the site ( work areas, storage areas, and temporary facilities under their responsibilities ). fire extinguishers shall be inspected at least annually by a certified person and visually insp"
+      }
+    ],
+    "similarity": 0.5471185402894959,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q032",
+    "question": "Is there a documented requirement for emergency communication systems in underground mines?",
+    "expected_source_docs": [
+      "DGMS-2023-01"
+    ],
+    "retrieved_source_docs": [
+      "DGMS-TC-15.txt",
+      "DGMS-2022-05.txt",
+      "DGMS-2023-01.txt"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "DGMS-2023-01.txt",
+        "chunk_index": 0,
+        "distance": 0.468,
+        "record_type": "txt",
+        "excerpt": "dgms circular 2023 - 01 : safety in mining operations = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = "
+      },
+      {
+        "doc_id": "DGMS-2022-05.txt",
+        "chunk_index": 0,
+        "distance": 0.4629,
+        "record_type": "txt",
+        "excerpt": "dgms circular 2022 - 05 : ventilation requirements = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms "
+      },
+      {
+        "doc_id": "DGMS-TC-15.txt",
+        "chunk_index": 0,
+        "distance": 0.5635,
+        "record_type": "txt",
+        "excerpt": "dgms technical circular 15 : ground control management = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = ="
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "DGMS-2023-01.txt",
+        "excerpt": "dgms circular 2023 - 01 : safety in mining operations = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2023 - 01 : safety in mining operations subject : mandatory safety equipment and p"
+      },
+      {
+        "doc_id": "DGMS-2022-05.txt",
+        "excerpt": "dgms circular 2022 - 05 : ventilation requirements = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2022 - 05 : ventilation requirements in underground mines subject : minimum ventilation sta"
+      },
+      {
+        "doc_id": "DGMS-TC-15.txt",
+        "excerpt": "dgms technical circular 15 : ground control management = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms technical circular 15 : ground control management subject : roof support and ground "
+      }
+    ],
+    "similarity": 0.5233339868587431,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q033",
+    "question": "Is there a documented requirement for backup power for mine ventilation systems?",
+    "expected_source_docs": [
+      "DGMS-2022-05"
+    ],
+    "retrieved_source_docs": [
+      "DGMS-2022-05.txt",
+      "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "DGMS-2022-05.txt",
+        "chunk_index": 0,
+        "distance": 0.4064,
+        "record_type": "txt",
+        "excerpt": "dgms circular 2022 - 05 : ventilation requirements = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms "
+      },
+      {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "chunk_index": 60,
+        "distance": 0.6102,
+        "record_type": "pdf",
+        "excerpt": "be taken against the irruption or inrush of water or other liquid matter into, outbreak of fire in or premature collapse of, any workings ; ( o ) for "
+      },
+      {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "chunk_index": 61,
+        "distance": 0.7505,
+        "record_type": "pdf",
+        "excerpt": "revenue ; ( za ) for requiring the fencing of any mine or part of a mine or any quarry, incline, shaft, pit or outlet, whether the same is being worke"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "DGMS-2022-05.txt",
+        "excerpt": "dgms circular 2022 - 05 : ventilation requirements = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = dgms circular 2022 - 05 : ventilation requirements in underground mines subject : minimum ventilation sta"
+      },
+      {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "excerpt": "be taken against the irruption or inrush of water or other liquid matter into, outbreak of fire in or premature collapse of, any workings ; ( o ) for providing for the ventilation of mines and the action to be taken in respect of dust, fire, and infl"
+      },
+      {
+        "doc_id": "THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf",
+        "excerpt": "revenue ; ( za ) for requiring the fencing of any mine or part of a mine or any quarry, incline, shaft, pit or outlet, whether the same is being worked or not, or any dangerous or prohibited area, subsidence, haulage, tramline or pathway, where such "
+      }
+    ],
+    "similarity": 0.603939121569605,
+    "status": "PASS"
+  },
+  {
+    "id": "Q034",
+    "question": "Do the safety manual and OISD-117 disagree on the internal inspection frequency for tank TNK-T03?",
+    "expected_source_docs": [
+      "safety_manual.txt",
+      "OISD-117"
+    ],
+    "retrieved_source_docs": [
+      "OISD-117.txt",
+      "safety_manual.txt",
+      "OISD-116.txt"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "OISD-117.txt",
+        "chunk_index": 0,
+        "distance": 0.2803,
+        "record_type": "txt",
+        "excerpt": "oisd - 117 : storage tank integrity management = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 117 storag"
+      },
+      {
+        "doc_id": "OISD-116.txt",
+        "chunk_index": 0,
+        "distance": 0.3733,
+        "record_type": "txt",
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = "
+      },
+      {
+        "doc_id": "safety_manual.txt",
+        "chunk_index": 0,
+        "distance": 0.4639,
+        "record_type": "txt",
+        "excerpt": "safety manual section 3 : equipment inspection requirements. all equipment tagged eq - 1001 through eq - 4002 must undergo quarterly inspections. pres"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "OISD-117.txt",
+        "excerpt": "oisd - 117 : storage tank integrity management = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 117 storage tank integrity management section 1 : tank classification 1. 1 tanks tnk - t01 and tnk - t02 are c"
+      },
+      {
+        "doc_id": "OISD-116.txt",
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 116 safety guidelines for petroleum refineries section 1 : scope and applicability "
+      },
+      {
+        "doc_id": "safety_manual.txt",
+        "excerpt": "safety manual section 3 : equipment inspection requirements. all equipment tagged eq - 1001 through eq - 4002 must undergo quarterly inspections. pressure vessels tnk - t01, tnk - t02, tnk - t03 require annual internal inspection. pumps pump - a01 an"
+      }
+    ],
+    "similarity": 0.6725096203319303,
+    "status": "PASS"
+  },
+  {
+    "id": "Q035",
+    "question": "Do the safety manual and OISD-116 agree on the monitoring frequency for pumps?",
+    "expected_source_docs": [
+      "safety_manual.txt",
+      "OISD-116"
+    ],
+    "retrieved_source_docs": [
+      "safety_manual.txt",
+      "OISD-130.txt",
+      "OISD-116.txt"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "safety_manual.txt",
+        "chunk_index": 0,
+        "distance": 0.483,
+        "record_type": "txt",
+        "excerpt": "safety manual section 3 : equipment inspection requirements. all equipment tagged eq - 1001 through eq - 4002 must undergo quarterly inspections. pres"
+      },
+      {
+        "doc_id": "OISD-116.txt",
+        "chunk_index": 0,
+        "distance": 0.4725,
+        "record_type": "txt",
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = "
+      },
+      {
+        "doc_id": "OISD-130.txt",
+        "chunk_index": 0,
+        "distance": 0.5618,
+        "record_type": "txt",
+        "excerpt": "oisd - 130 : safety in electrical systems = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 130 safety in electrical "
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "safety_manual.txt",
+        "excerpt": "safety manual section 3 : equipment inspection requirements. all equipment tagged eq - 1001 through eq - 4002 must undergo quarterly inspections. pressure vessels tnk - t01, tnk - t02, tnk - t03 require annual internal inspection. pumps pump - a01 an"
+      },
+      {
+        "doc_id": "OISD-116.txt",
+        "excerpt": "oisd - 116 : safety guidelines for petroleum refineries = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 116 safety guidelines for petroleum refineries section 1 : scope and applicability "
+      },
+      {
+        "doc_id": "OISD-130.txt",
+        "excerpt": "oisd - 130 : safety in electrical systems = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = oisd - 130 safety in electrical systems section 1 : electrical safety standards 1. 1 all electrical equipment in hazardous areas mus"
+      }
+    ],
+    "similarity": 0.6110415521002641,
+    "status": "PASS"
+  },
+  {
+    "id": "Q036",
+    "question": "Is there a documented requirement for handling slippery workplaces during construction?",
+    "expected_source_docs": [
+      "OISD-GDN-192"
+    ],
+    "retrieved_source_docs": [
+      "NTPC_Safety_Rules.pdf",
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 16,
+        "distance": 0.5572,
+        "record_type": "pdf",
+        "excerpt": ", the bars shall be spread not more than 5 cm apart ; l. elevated workplaces at more than 2 m above the floor or ground shall be protected on all open"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 17,
+        "distance": 0.3992,
+        "record_type": "pdf",
+        "excerpt": "faults or breakdowns etc. b. working in the confined space may involve certain serious hazards. strict adherence to the conditions of permit - to - wo"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 3,
+        "distance": 0.5502,
+        "record_type": "pdf",
+        "excerpt": "- boards should be provided to while working near rotating protect workers from falling from equipment or working at heights. elevated workplaces. 5. "
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": ", the bars shall be spread not more than 5 cm apart ; l. elevated workplaces at more than 2 m above the floor or ground shall be protected on all open sides by guardrails. it is commonly observed that fragile barricade tapes are used as a substitute "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "faults or breakdowns etc. b. working in the confined space may involve certain serious hazards. strict adherence to the conditions of permit - to - work issued for the purpose is required ; c. control of energy sources shall be ensured through log - "
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "- boards should be provided to while working near rotating protect workers from falling from equipment or working at heights. elevated workplaces. 5. 2 means of access and 5. 5 prevention of egress unauthorised entry adequate and safe means of access"
+      }
+    ],
+    "similarity": 0.19393325054844004,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q037",
+    "question": "Are visitors allowed unaccompanied on construction sites?",
+    "expected_source_docs": [
+      "OISD-GDN-192"
+    ],
+    "retrieved_source_docs": [
+      "OISD-GDN-192.txt",
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 10,
+        "distance": 0.5009,
+        "record_type": "pdf",
+        "excerpt": ". 1 construction sites located in built - up ( atleast two, differently located ) to areas and alongside vehicular and and egress from all workplaces "
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 3,
+        "distance": 0.4303,
+        "record_type": "pdf",
+        "excerpt": "- boards should be provided to while working near rotating protect workers from falling from equipment or working at heights. elevated workplaces. 5. "
+      },
+      {
+        "doc_id": "OISD-GDN-192.txt",
+        "chunk_index": 0,
+        "distance": 0.6183,
+        "record_type": "txt",
+        "excerpt": "sr. number : oisd / doc / 2016 / 1 oisd \u2013 gdn \u2013 192 safety practices during construction ( page no. 6 ) 5. 3. 3 workplaces and passageways, that are s"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": ". 1 construction sites located in built - up ( atleast two, differently located ) to areas and alongside vehicular and and egress from all workplaces pedestrian traffic routes should be should be provided. same should be fenced to prevent the entry o"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "- boards should be provided to while working near rotating protect workers from falling from equipment or working at heights. elevated workplaces. 5. 2 means of access and 5. 5 prevention of egress unauthorised entry adequate and safe means of access"
+      },
+      {
+        "doc_id": "OISD-GDN-192.txt",
+        "excerpt": "sr. number : oisd / doc / 2016 / 1 oisd \u2013 gdn \u2013 192 safety practices during construction ( page no. 6 ) 5. 3. 3 workplaces and passageways, that are slippery owing to oil, grease or other causes, should be cleaned up or strewn with sand, sawdust, ash"
+      }
+    ],
+    "similarity": 0.5183137752723587,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q038",
+    "question": "Which regulation does the inspection of PUMP-B01 reference and what severity was recorded?",
+    "expected_source_docs": [
+      "inspection_logs.csv"
+    ],
+    "retrieved_source_docs": [
+      "inspection_logs.csv",
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "inspection_logs.csv",
+        "chunk_index": 0,
+        "distance": 0.3388,
+        "record_type": "inspection_logs",
+        "excerpt": "[Inspection Logs Record INS-2026-8000]\nInspection Id: INS-2026-8000\nInspection Type: Post-Maintenance\nPlant: Steel Mill D\nEquipment Tag: PUMP-B01\nInsp"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 42,
+        "distance": 0.6152,
+        "record_type": "pdf",
+        "excerpt": "1. 1. 2, 5. 2. 7, 5. 3. 10, 5. 6. 12 and 5. 7. 8 of induction. this program should cover at oisd - std - 154 on'safety aspects in least the following "
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 53,
+        "distance": 0.5972,
+        "record_type": "pdf",
+        "excerpt": "the root cause. ensure timely implementation of correction, corrective action and preventive action. 3. 1 goals and targets - o to achieve \u201c zero loss"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "inspection_logs.csv",
+        "excerpt": "[Inspection Logs Record INS-2026-8000]\nInspection Id: INS-2026-8000\nInspection Type: Post-Maintenance\nPlant: Steel Mill D\nEquipment Tag: PUMP-B01\nInspector: Mrs. Carrie Moore\nInspection Date: 2026-04-23\nShift: Swing Shift\nFindings: When discussion if"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "1. 1. 2, 5. 2. 7, 5. 3. 10, 5. 6. 12 and 5. 7. 8 of induction. this program should cover at oisd - std - 154 on'safety aspects in least the following : functional training'i ) responsibility of contractor for safety c. contractor worker of their pers"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "the root cause. ensure timely implementation of correction, corrective action and preventive action. 3. 1 goals and targets - o to achieve \u201c zero loss time incident at site \u201d o 100 % compliance of all legal / statutory requirements related to ehs. o "
+      }
+    ],
+    "similarity": 0.6630372373262665,
+    "status": "PASS"
+  },
+  {
+    "id": "Q039",
+    "question": "Which plant and equipment were involved in the Lost Time incident INC-2026-9000 and which regulation does it reference?",
+    "expected_source_docs": [
+      "incident_reports.csv"
+    ],
+    "retrieved_source_docs": [
+      "NTPC_Safety_Rules.pdf",
+      "Bhel-contractor-manual.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 53,
+        "distance": 0.6783,
+        "record_type": "pdf",
+        "excerpt": "the root cause. ensure timely implementation of correction, corrective action and preventive action. 3. 1 goals and targets - o to achieve \u201c zero loss"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 7,
+        "distance": 0.6081,
+        "record_type": "pdf",
+        "excerpt": "any liquid or solid used as building material ; 13 ( f ) fire and explosion causing damage to any place on construction site where building workers ar"
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "chunk_index": 54,
+        "distance": 0.6397,
+        "record_type": "pdf",
+        "excerpt": "the day on which the injury occurred. 5. 1. 6 medical cases medical cases come under non - reportable cases, where owing to illness or other reason th"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "the root cause. ensure timely implementation of correction, corrective action and preventive action. 3. 1 goals and targets - o to achieve \u201c zero loss time incident at site \u201d o 100 % compliance of all legal / statutory requirements related to ehs. o "
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "any liquid or solid used as building material ; 13 ( f ) fire and explosion causing damage to any place on construction site where building workers are employed ; ( g ) spillage or leakage of any hazardous substance and damage to their container ; ( "
+      },
+      {
+        "doc_id": "Bhel-contractor-manual.pdf",
+        "excerpt": "the day on which the injury occurred. 5. 1. 6 medical cases medical cases come under non - reportable cases, where owing to illness or other reason the employee was absent from work and seeks medical treatment. 5. 1. 7 type of incidents & their repor"
+      }
+    ],
+    "similarity": 0.4014949896079984,
+    "status": "FAIL"
+  },
+  {
+    "id": "Q040",
+    "question": "Which hot work permit is currently active and which equipment does it cover?",
+    "expected_source_docs": [
+      "permits.csv"
+    ],
+    "retrieved_source_docs": [
+      "NTPC_Safety_Rules.pdf"
+    ],
+    "chunk_sources": [
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 67,
+        "distance": 0.3344,
+        "record_type": "pdf",
+        "excerpt": "area has to be cleared of any flammables and combustible material. 7 electrical equipment to be protected and grounded. 8 are fire - fighting equipmen"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 66,
+        "distance": 0.5378,
+        "record_type": "pdf",
+        "excerpt": "workplace 07 - list of employees trained in safety at the commencement of execution of the job ; details of training \u2013 its module and contents 08 - sa"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "chunk_index": 9,
+        "distance": 0.482,
+        "record_type": "pdf",
+        "excerpt": "; 17. 4 a work permit authorization form shall be completed with the maximum duration period not exceeding 12 hours. 17. 5 a copy of each permit to wo"
+      }
+    ],
+    "llm_sources": [
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "area has to be cleared of any flammables and combustible material. 7 electrical equipment to be protected and grounded. 8 are fire - fighting equipment - extinguishers, water, sand buckets etc, located nearby for ready in case of any mishap? 9 gas cy"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "workplace 07 - list of employees trained in safety at the commencement of execution of the job ; details of training \u2013 its module and contents 08 - safety training targets, schedules, methods to be adopted for providing safety training to all employe"
+      },
+      {
+        "doc_id": "NTPC_Safety_Rules.pdf",
+        "excerpt": "; 17. 4 a work permit authorization form shall be completed with the maximum duration period not exceeding 12 hours. 17. 5 a copy of each permit to work ( ptw ) shall be displayed near to work are ( on ptw display board ) in close proximity to the ac"
+      }
+    ],
+    "similarity": 0.48547132245165764,
+    "status": "FAIL"
   }
 ]

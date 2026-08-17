@@ -308,6 +308,28 @@ def test_get_entities_by_type():
     print("\n✓ ALL get_entities_by_type TESTS PASSED\n")
 
 
+def test_add_entity_completes_auto_created_node():
+    """Regression: a node auto-created by add_edge must get typed when add_entity runs later."""
+    print("=" * 60)
+    print("Test: add_entity completes auto-created node")
+    print("=" * 60)
+
+    kg = setup_graph()
+
+    # Simulate a relationship created before the regulation node was added
+    kg.graph.add_edge("EQ-0001", "NEW-REG", relation="subject_to")
+    assert "type" not in kg.graph.nodes["NEW-REG"]
+
+    kg.add_entity("NEW-REG", "regulation", doc_id="test_doc")
+    assert kg.graph.nodes["NEW-REG"]["type"] == "regulation"
+    assert kg.graph.nodes["NEW-REG"]["color"] == kg_module.NODE_COLORS["regulation"]
+    assert kg.graph.nodes["NEW-REG"].get("doc_id") == "test_doc"
+    print(f"  ✓ NEW-REG completed: type={kg.graph.nodes['NEW-REG']['type']}, "
+          f"color={kg.graph.nodes['NEW-REG']['color']}")
+
+    print("\n✓ ALL add_entity completion TESTS PASSED\n")
+
+
 def test_get_stats():
     """Test get_stats returns correct statistics."""
     print("=" * 60)
@@ -340,6 +362,7 @@ if __name__ == "__main__":
     test_get_subgraph_for_nodes()
     test_to_json()
     test_get_entities_by_type()
+    test_add_entity_completes_auto_created_node()
     test_get_stats()
     
     print("=" * 60)

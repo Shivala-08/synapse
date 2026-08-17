@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     # spaCy
     spacy_model: str = "en_core_web_sm"
 
+    # Feature flags — used by run_ablation.py to isolate retrieval components
+    use_reranker: bool = True
+    use_hybrid: bool = True
+    use_graph: bool = True
+    use_semantic_cache: bool = True
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

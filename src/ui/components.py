@@ -11,7 +11,7 @@ __all__ = [
     "doc_card_html", "citation_card", "keypoints_box", "chat_bubble", "stats_grid",
     "info_banner", "settings_section", "typing_indicator", "skeleton_loader",
     "skeleton_card", "neon_stat_card", "animated_counter_html", "glow_button",
-    "particle_background_js",
+    "particle_background_js", "pipeline_trace", "evidence_stats_row",
 ]
 
 
@@ -224,6 +224,72 @@ def glow_button(label: str, key: str = None, icon: str = "", color: str = "#6366
     key_attr = f' key="{safe_key}"' if key else ""
     icon_html = f'{icon} ' if icon else ""
     return f"""<div style="margin-bottom:0.5rem;"><div class="glow-btn-wrap"><button class="glow-btn"{key_attr} style="width:100%;padding:0.7rem 1.2rem;background:linear-gradient(135deg,{color} 0%,{color}cc 100%);color:white;border:1px solid {color}44;border-radius:var(--radius-md);font-weight:600;font-size:0.88rem;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);box-shadow:0 4px 15px {color}33;">{icon_html}{safe_label}</button></div></div>"""
+
+
+def pipeline_trace(trace: dict) -> str:
+    """Render the retrieval-pipeline step indicator (Phase 5.2).
+
+    A horizontal Query → Cache → Hybrid Retrieve → Rerank → Graph → LLM → Answer
+    row where each stage reflects what actually happened in the request. On a
+    cache hit the row short-circuits (only Query / Cache / Answer ran).
+    """
+    t = trace or {}
+    safe = lambda s: html_mod.escape(str(s))
+
+    def _step(label: str, kind: str = "skip") -> str:
+        return f'<span class="pipe-step pipe-{kind}">{safe(label)}</span>'
+
+    if t.get("cache") == "hit":
+        parts = [
+            _step("✓ Query", "done"),
+            '<span class="pipe-arrow">→</span>',
+            _step("⚡ Cache HIT", "hit"),
+            '<span class="pipe-arrow">→</span>',
+            _step(f"Answer · {int(t.get('latency_ms', 0))} ms", "done"),
+        ]
+    else:
+        model = str(t.get("model", "")).replace("nvidia/", "").replace("meta/", "").split(" /")[0]
+        parts = [
+            _step("✓ Query", "done"),
+            '<span class="pipe-arrow">→</span>',
+            _step("Cache miss", "skip"),
+            '<span class="pipe-arrow">→</span>',
+            _step("Hybrid Retrieve" if t.get("hybrid") else "Vector only", "done" if t.get("hybrid") else "warn"),
+            '<span class="pipe-arrow">→</span>',
+            _step("Rerank" if t.get("reranker") else "No rerank", "done" if t.get("reranker") else "warn"),
+            '<span class="pipe-arrow">→</span>',
+            _step(f"Graph · {int(t.get('graph_entities', 0))} entities", "done" if t.get("graph_entities") else "warn"),
+            '<span class="pipe-arrow">→</span>',
+            _step(f"LLM · {safe(model) if model else 'fallback'}", "done" if t.get("model") else "warn"),
+            '<span class="pipe-arrow">→</span>',
+            _step(f"Answer · {int(t.get('latency_ms', 0))} ms", "done"),
+        ]
+    return f'<div class="pipe-row">{"".join(parts)}</div>'
+
+
+def evidence_stats_row(trace: dict) -> str:
+    """Render compact monospace retrieval stats for the evidence panel (Phase 5.1)."""
+    t = trace or {}
+    safe = lambda s: html_mod.escape(str(s))
+    chips = []
+    if t.get("candidates") is not None:
+        chips.append(f"candidates: {int(t['candidates'])}")
+    if t.get("chunks_used") is not None:
+        chips.append(f"chunks used: {int(t['chunks_used'])}")
+    if t.get("graph_entities") is not None:
+        chips.append(f"graph entities: {int(t['graph_entities'])}")
+    if t.get("graph_relations") is not None:
+        chips.append(f"graph relations: {int(t['graph_relations'])}")
+    if t.get("complexity") is not None:
+        chips.append(f"complexity: {'complex' if t['complexity'] else 'simple'}")
+    if t.get("thinking") is not None:
+        chips.append(f"thinking: {'on' if t['thinking'] else 'off'}")
+    if t.get("routing_mode"):
+        chips.append(f"router: {safe(t['routing_mode'])}")
+    if not chips:
+        return ""
+    inner = "".join(f'<span class="stat-chip" style="font-family:JetBrains Mono,monospace;font-size:0.7rem;">{safe(c)}</span>' for c in chips)
+    return f'<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin:0.4rem 0 0.9rem 0;">{inner}</div>'
 
 
 def particle_background_js(container_id: str = "particles-bg", count: int = 50) -> str:
