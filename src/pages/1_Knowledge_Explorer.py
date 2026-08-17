@@ -69,7 +69,12 @@ NODE_TYPE_COLORS = {
 # ══════════════════════════════════════════════════════════════════════════════
 # INJECT SHARED DESIGN SYSTEM CSS
 # ══════════════════════════════════════════════════════════════════════════════
-inject_global_css()
+inject_global_css(
+    page_title="Knowledge Explorer — Synapse",
+    description="Interactive knowledge explorer: Visualise and navigate complex relationships between equipment, safety regulations, plants, permits, and incidents.",
+    keywords="Knowledge Graph, 3D Graph, Safety Regulations, Interactive Visualisation, NetworkX, Synapse, Streamlit",
+    canonical_path="/1_Knowledge_Explorer"
+)
 
 # ── Initialize session state ──
 defaults = {

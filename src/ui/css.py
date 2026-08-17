@@ -487,45 +487,96 @@ GLOBAL_CSS = """
 # HELPERS
 
 
-def inject_global_css() -> None:
+def inject_global_css(
+    page_title: str = "Synapse — AI-Powered Knowledge Intelligence",
+    description: str = "Synapse — AI-powered knowledge intelligence combining RAG, Hybrid Search, and Knowledge Graphs for real-time regulatory intelligence.",
+    keywords: str = "RAG, Industrial Intelligence, Safety Regulations, Knowledge Graph, Hybrid Search, BM25, ChromaDB, FastAPI, Streamlit",
+    canonical_path: str = ""
+) -> None:
     """Inject the global CSS and SEO metadata into the Streamlit page."""
     st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
     
+    import json
+    
+    js_title = page_title.replace("'", "\\'").replace("\n", " ")
+    js_desc = description.replace("'", "\\'").replace("\n", " ")
+    js_keys = keywords.replace("'", "\\'").replace("\n", " ")
+    js_canon = f"http://localhost:8501{canonical_path}".replace("'", "\\'")
+    
     # Inject SEO meta tags and OG tags dynamically via parent document manipulation
-    seo_html = """
+    seo_html = f"""
     <script>
-    try {
+    try {{
         const p = window.parent.document;
+        p.documentElement.setAttribute('lang', 'en');
+        p.title = '{js_title}';
         
-        // 1. Meta Description
-        let d = p.querySelector('meta[name="description"]');
-        if (!d) {
-            d = p.createElement('meta');
-            d.setAttribute('name', 'description');
-            p.head.appendChild(d);
-        }
-        d.setAttribute('content', 'Synapse — AI-powered knowledge intelligence combining RAG, Hybrid Search, and Knowledge Graphs for real-time regulatory intelligence.');
-
-        // 2. Meta Keywords
-        let k = p.querySelector('meta[name="keywords"]');
-        if (!k) {
-            k = p.createElement('meta');
-            k.setAttribute('name', 'keywords');
-            p.head.appendChild(k);
-        }
-        k.setAttribute('content', 'RAG, Industrial Intelligence, Safety Regulations, Knowledge Graph, Hybrid Search, BM25, ChromaDB, FastAPI, Streamlit');
-
-        // 3. Open Graph Title
-        let o = p.querySelector('meta[property="og:title"]');
-        if (!o) {
-            o = p.createElement('meta');
-            o.setAttribute('property', 'og:title');
-            p.head.appendChild(o);
-        }
-        o.setAttribute('content', 'Synapse — AI-Powered Knowledge Intelligence');
-    } catch (e) {
+        const setMeta = (name, value, isProperty = false) => {{
+            const attr = isProperty ? 'property' : 'name';
+            let el = p.querySelector(`meta[${{attr}}="${{name}}"]`);
+            if (!el) {{
+                el = p.createElement('meta');
+                el.setAttribute(attr, name);
+                p.head.appendChild(el);
+            }}
+            el.setAttribute('content', value);
+        }};
+        
+        const setLink = (rel, href) => {{
+            let el = p.querySelector(`link[rel="${{rel}}"]`);
+            if (!el) {{
+                el = p.createElement('link');
+                el.setAttribute('rel', rel);
+                p.head.appendChild(el);
+            }}
+            el.setAttribute('href', href);
+        }};
+        
+        // Standard Meta
+        setMeta('description', '{js_desc}');
+        setMeta('keywords', '{js_keys}');
+        setMeta('robots', 'index, follow');
+        setLink('canonical', '{js_canon}');
+        
+        // Open Graph
+        setMeta('og:title', '{js_title}', true);
+        setMeta('og:description', '{js_desc}', true);
+        setMeta('og:url', '{js_canon}', true);
+        setMeta('og:type', 'website', true);
+        setMeta('og:site_name', 'Synapse', true);
+        
+        // Twitter Card
+        setMeta('twitter:card', 'summary_large_image');
+        setMeta('twitter:title', '{js_title}');
+        setMeta('twitter:description', '{js_desc}');
+        
+        // JSON-LD Structured Data
+        let ld = p.querySelector('script[type="application/ld+json"]');
+        if (!ld) {{
+            ld = p.createElement('script');
+            ld.setAttribute('type', 'application/ld+json');
+            p.head.appendChild(ld);
+        }}
+        ld.textContent = JSON.stringify({{
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "Synapse",
+            "alternateName": "Synapse AI",
+            "url": '{js_canon}',
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "All",
+            "description": '{js_desc}',
+            "featureList": [
+                "Hybrid Vector & Keyword Search",
+                "Interactive 3D Knowledge Graph",
+                "Real-time Regulatory Compliance Gap Analysis",
+                "Adaptive Multi-stage RAG Pipeline"
+            ]
+        }});
+    }} catch (e) {{
         console.error('SEO injection failed:', e);
-    }
+    }}
     </script>
     """
     st.components.v1.html(seo_html, height=0, width=0)
+

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi import File, UploadFile, HTTPException, Query
+from fastapi import File, UploadFile, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -116,6 +116,38 @@ class FeedbackRequest(BaseModel):
 async def health_check():
     """Basic health check endpoint."""
     return {"status": "ok", "version": settings.app_version}
+
+
+@app.get("/robots.txt", response_class=Response)
+async def robots_txt():
+    """Serve robots.txt for search engines."""
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Sitemap: http://localhost:8000/sitemap.xml\n"
+    )
+    return Response(content=content, media_type="text/plain")
+
+
+@app.get("/sitemap.xml", response_class=Response)
+async def sitemap_xml():
+    """Serve sitemap.xml for search engines."""
+    content = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        '  <url>\n'
+        '    <loc>http://localhost:8501/</loc>\n'
+        '    <changefreq>daily</changefreq>\n'
+        '    <priority>1.0</priority>\n'
+        '  </url>\n'
+        '  <url>\n'
+        '    <loc>http://localhost:8501/1_Knowledge_Explorer</loc>\n'
+        '    <changefreq>daily</changefreq>\n'
+        '    <priority>0.8</priority>\n'
+        '  </url>\n'
+        '</urlset>'
+    )
+    return Response(content=content, media_type="application/xml")
 
 
 @app.get("/")

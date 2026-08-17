@@ -43,7 +43,12 @@ st.set_page_config(
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 # ── Inject shared design system CSS ────────────────────────────────────────────
-inject_global_css()
+inject_global_css(
+    page_title="Synapse — AI-Powered Knowledge Intelligence",
+    description="Synapse — The next-generation industrial knowledge intelligence system combining RAG, Hybrid Search, and Knowledge Graphs for compliance gap analysis.",
+    keywords="RAG, Industrial Intelligence, Safety Regulations, Knowledge Graph, Hybrid Search, BM25, ChromaDB, FastAPI, Streamlit",
+    canonical_path="/"
+)
 
 
 @st.dialog("Knowledge Graph Subgraph", width="large")
