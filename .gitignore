@@ -14,5 +14,8 @@ data/benchmarks/retrieval_log.json
 static/js/
 *.log
 node_modules/
+web/.next/
+web/out/
 package.json
 package-lock.json
+.vercel

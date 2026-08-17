@@ -2,7 +2,9 @@
 
 **Graph-Augmented Knowledge Intelligence Engine** · RAG + knowledge graphs + adaptive model routing for industrial safety documents
 
-> 🔗 **Live demo:** [pallav-rag-first-project.streamlit.app](https://pallav-rag-first-project.streamlit.app/) · **Source:** [github.com/Shivala-08/synapse](https://github.com/Shivala-08/synapse)
+> 🔗 **Live demo:** [synapse-ebon-three.vercel.app](https://synapse-ebon-three.vercel.app/) · **Source:** [github.com/Shivala-08/synapse](https://github.com/Shivala-08/synapse)
+>
+> Next.js frontend on **Vercel** + FastAPI backend on **Render** (the older Streamlit UI remains at `src/App.py`).
 >
 > Full engineering narrative: [`ENGINEERING_LOG.md`](../ENGINEERING_LOG.md) · Full evaluation: [`EVALUATION.md`](../EVALUATION.md)
 

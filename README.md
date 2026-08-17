@@ -103,6 +103,9 @@ The project codebase is organized as follows:
 │   │   └── knowledge_graph.py  # NetworkX knowledge graph constructor & query
 │   └── utils/                  # Shared helper scripts
 │
+├── web/                        # Next.js frontend (Vercel) — chat, graph, docs, evaluation
+│   └── src/app/                # App Router pages (Query Console, Documents, Graph, …)
+│
 ├── tests/                      # Verification suites
 │   ├── test_chromadb.py        # Core vector store integration test
 │   ├── test_knowledge_graph.py # Knowledge graph construction and traversal test
@@ -228,6 +231,47 @@ vectors. The failures, attempts, and fixes are written up in
 [`ENGINEERING_LOG.md`](ENGINEERING_LOG.md) (Problem → Attempt → Result → Fix),
 and the quantitative case for each retained component is in
 [`EVALUATION.md`](EVALUATION.md).
+
+---
+
+## 🖥️ Next.js Frontend (Vercel)
+
+The Streamlit UI in `src/App.py` remains fully supported, but the primary
+frontend moving forward is the **Next.js app in `web/`**, deployed on Vercel.
+It talks to the same FastAPI backend over HTTP + SSE.
+
+### Local development
+```bash
+cd web
+npm install
+# point the frontend at your backend
+NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
+# open http://localhost:3000 (backend must be running on :8000)
+```
+
+### Deploy to Vercel
+1. Push the repo to GitHub (`vercel.json` at the root already sets the
+   build directory to `web/`).
+2. Import the repo in Vercel — framework preset **Next.js**, root directory
+   `web/` (auto-detected from `vercel.json`).
+3. Add the environment variable at build time:
+   `NEXT_PUBLIC_API_URL=https://<your-render-backend-url>` (no trailing slash).
+4. Deploy. The frontend is static + client-side JS; the Python backend
+   (FastAPI + ChromaDB) stays on a persistent host (Render) and must have
+   CORS enabled — `src/main.py` already allows all origins.
+
+> **Live:** [synapse-ebon-three.vercel.app](https://synapse-ebon-three.vercel.app/) (Next.js on Vercel) →
+> [economic-times-hackathon.onrender.com](https://economic-times-hackathon.onrender.com) (FastAPI on Render).
+
+### What's in the frontend
+- **Query Console** — SSE streaming chat with evidence trace (pipeline step
+  row, retrieval stats, citations), router control, example questions.
+- **Documents** — library with type filter, search, chunk inspector.
+- **Knowledge Network** — interactive force-directed graph, node details,
+  path finder.
+- **Entity Explorer** — browse entities by type with relationships.
+- **Evaluation** — runs the 40-question benchmark with category breakdown.
+- **Settings** — corpus initialization, uploads, raw vector debug search.
 
 ---
 
