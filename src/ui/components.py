@@ -47,7 +47,7 @@ def hero_header(
             background:linear-gradient(135deg,rgba(99,102,241,0.08) 0%,rgba(10,14,26,0.9) 40%,rgba(139,92,246,0.06) 100%);
             border:1px solid rgba(99,102,241,0.2); border-radius:20px;
             backdrop-filter:blur(20px) saturate(180%);
-            box-shadow:0 20px 60px rgba(0,0,0,0.3),0 0 40px rgba(99,102,241,0.06);
+            box-shadow:0 20px 60px rgba(0,0,0,0.3);
             overflow:hidden;">
 
     {starfield_html}
@@ -86,7 +86,7 @@ def sidebar_brand(name: str = "IND-KNOWLEDGE", badge: str = "", icon_url: str = 
     badge_html = f'<div style="margin-top:0.4rem;"><span class="version-badge">{badge}</span></div>' if badge else ""
     st.markdown(f"""
 <div class="sidebar-brand">
-    <img src="{icon_url}" width="50" style="margin-bottom:0.6rem;filter:drop-shadow(0 0 12px rgba(99,102,241,0.4));">
+    <img src="{icon_url}" width="50" style="margin-bottom:0.6rem;filter:drop-shadow(0 0 6px rgba(99,102,241,0.25));">
     <h2 style="margin:0;font-size:1.15rem;font-weight:800;background:linear-gradient(90deg,#818cf8,#c7d2fe,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.02em;">{name}</h2>
     {badge_html}
 </div>
@@ -126,7 +126,7 @@ def llm_status_pill(model: str, available: bool, mode: str = "ollama"):
 def entity_card_html(entity_id: str, entity_type: str, color: str, degree: int) -> str:
     eid = html_mod.escape(str(entity_id))
     etype = html_mod.escape(entity_type.replace('_',' ').title())
-    return f"""<div class="entity-card"><div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;"><span style="width:14px;height:14px;border-radius:50%;background:{color};display:inline-block;box-shadow:0 0 8px {color};"></span><strong style="font-size:1.1rem;">{eid}</strong></div><div style="display:flex;gap:0.5rem;flex-wrap:wrap;"><span class="stat-chip"><span class="dot" style="background:{color};"></span>{etype}</span><span class="stat-chip">{degree} connections</span></div></div>"""
+    return f"""<div class="entity-card"><div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;"><span style="width:14px;height:14px;border-radius:50%;background:{color};display:inline-block;box-shadow:0 0 4px {color};"></span><strong style="font-size:1.1rem;">{eid}</strong></div><div style="display:flex;gap:0.5rem;flex-wrap:wrap;"><span class="stat-chip"><span class="dot" style="background:{color};"></span>{etype}</span><span class="stat-chip">{degree} connections</span></div></div>"""
 
 
 def neighbor_row_html(nid: str, color: str, relation: str) -> str:
@@ -223,7 +223,7 @@ def glow_button(label: str, key: str = None, icon: str = "", color: str = "#6366
     safe_key = html_mod.escape(str(key)) if key else ""
     key_attr = f' key="{safe_key}"' if key else ""
     icon_html = f'{icon} ' if icon else ""
-    return f"""<div style="margin-bottom:0.5rem;"><div class="glow-btn-wrap"><button class="glow-btn"{key_attr} style="width:100%;padding:0.7rem 1.2rem;background:linear-gradient(135deg,{color} 0%,{color}cc 100%);color:white;border:1px solid {color}44;border-radius:var(--radius-md);font-weight:600;font-size:0.88rem;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);box-shadow:0 4px 15px {color}33;">{icon_html}{safe_label}</button></div></div>"""
+    return f"""<div style="margin-bottom:0.5rem;"><div class="glow-btn-wrap"><button class="glow-btn"{key_attr} style="width:100%;padding:0.7rem 1.2rem;background:linear-gradient(135deg,{color} 0%,{color}cc 100%);color:white;border:1px solid {color}44;border-radius:var(--radius-md);font-weight:600;font-size:0.88rem;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);box-shadow:0 2px 6px {color}22;">{icon_html}{safe_label}</button></div></div>"""
 
 
 def pipeline_trace(trace: dict) -> str:
