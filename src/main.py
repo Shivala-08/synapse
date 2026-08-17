@@ -739,10 +739,16 @@ async def query_rag_stream(request: QueryRequest):
         tokens_limit = 2048
         logger.info("Routing override: deep reasoning -> model=nvidia/nemotron-3-ultra-550b-a55b, enable_thinking=True")
     else:  # "auto"
-        target_model = settings.nvidia_model
         complexity = classify_query_complexity(request.question, chunks)
         enable_thinking = complexity["enable_thinking"]
         reasoning_budget = complexity["reasoning_budget"]
+        # Simple lookups -> fast 8B model. The 550B's ~40s+ first token blows
+        # Render free tier's 60s request limit; deep synthesis stays on 550B.
+        if enable_thinking:
+            target_model = settings.nvidia_model
+        else:
+            target_model = "meta/llama-3.1-8b-instruct"
+            logger.info("Auto routing (stream): simple query -> meta/llama-3.1-8b-instruct")
         tokens_limit = 2048 if enable_thinking else 1024
 
     llm = get_llm()

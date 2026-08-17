@@ -34,21 +34,34 @@ def test_classify_long_query_is_complex():
 @pytest.mark.parametrize("q", [
     "Compare hot work and cold work requirements",
     "What is the difference between OISD-116 and OISD-117?",
-    "List all PPE requirements for mining workers",
-    "Which permits are required and which are optional?",
+    "Do the safety manual and OISD-117 disagree on tank inspection frequency?",
+    "Are the safety manual and OISD-116 inconsistent on pump monitoring?",
 ])
 def test_classify_comparison_queries_are_complex(q):
     res = query_engine.classify_query_complexity(q, [])
     assert res["is_complex"] is True
 
 
-def test_classify_multi_doc_close_chunks_is_complex():
+def test_classify_lookup_words_are_simple():
+    for q in [
+        "List all PPE requirements for mining workers",
+        "Which permits are required and which are optional?",
+        "What are the electrical safety requirements per OISD-130?",
+        "Which regulation applies to work order WO-2026-1001?",
+    ]:
+        res = query_engine.classify_query_complexity(q, [])
+        assert res["is_complex"] is False, q
+
+
+def test_classify_multi_doc_chunks_alone_are_simple():
+    # The old multi-doc-distance heuristic is gone: routine lookups whose
+    # retrieval spans two documents must NOT be sent to the slow deep model.
     chunks = [
         {"metadata": {"doc_id": "a"}, "distance": 0.30},
         {"metadata": {"doc_id": "b"}, "distance": 0.35},
     ]
     res = query_engine.classify_query_complexity("A question about safety procedures", chunks)
-    assert res["is_complex"] is True
+    assert res["is_complex"] is False
 
 
 def test_classify_same_doc_chunks_is_simple():

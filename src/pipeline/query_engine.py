@@ -505,21 +505,21 @@ def classify_query_complexity(query: str, chunks: list) -> dict:
 
     is_complex = len(query) > 180
 
+    # Genuine cross-document comparison signals only — "which", "list", "all"
+    # etc. are lookup words, not synthesis signals, and were sending routine
+    # lookups to the slow deep model.
     comparison_words = [
-        "versus", "compare", "difference between", "difference", "vs", "comparison",
-        "which", "list", "all", "each", "across"
+        "versus", "compare", "comparison", "vs", "difference",
+        "disagree", "conflict", "contradict", "inconsistent", "differ",
     ]
     query_lower = query.lower()
     if not is_complex and any(word in query_lower for word in comparison_words):
         is_complex = True
 
-    if not is_complex and len(chunks) >= 2:
-        doc1 = chunks[0]["metadata"].get("doc_id") if chunks[0].get("metadata") else None
-        doc2 = chunks[1]["metadata"].get("doc_id") if chunks[1].get("metadata") else None
-        dist1 = chunks[0].get("distance", 0.0)
-        dist2 = chunks[1].get("distance", 0.0)
-        if doc1 and doc2 and doc1 != doc2 and abs(dist1 - dist2) < 0.12:
-            is_complex = True
+    # (The old multi-doc-distance heuristic is gone: it fired on routine
+    # lookups whose retrieval happened to span two documents, sending them to
+    # the slow deep model. Explicit comparison language + query length are
+    # sufficient signals.)
 
     if not is_complex:
         enable_thinking = False
@@ -636,10 +636,17 @@ def generate_answer(query: str, context: Dict[str, Any], routing_mode: str = "au
         reasoning_budget = 1024
         logger.info("Routing override: deep reasoning -> model=nvidia/nemotron-3-ultra-550b-a55b, enable_thinking=True")
     else:  # "auto"
-        target_model = settings.nvidia_model
         complexity = classify_query_complexity(query, chunks)
         enable_thinking = complexity["enable_thinking"]
         reasoning_budget = complexity["reasoning_budget"]
+        # Simple lookups go to the fast 8B model — the 550B is correct but slow
+        # (~40s+ first token), which blows the 60s request limit on Render's free
+        # tier. Complex/synthesizing questions still get the deep model.
+        if enable_thinking:
+            target_model = settings.nvidia_model
+        else:
+            target_model = "meta/llama-3.1-8b-instruct"
+            logger.info("Auto routing: simple query -> fast model meta/llama-3.1-8b-instruct")
 
     llm = get_llm()
     is_nvidia = "NvidiaLLM" in type(llm).__name__
