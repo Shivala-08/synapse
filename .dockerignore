@@ -2,7 +2,6 @@
 .git/
 .pytest_cache/
 node_modules/
-data/chroma_db/
 data/temp_uploads/
 .env
 *.log
