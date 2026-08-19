@@ -15,9 +15,12 @@ from pathlib import Path
 from typing import List, Optional, Union
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi import File, UploadFile, HTTPException, Query, Response
+from fastapi import File, UploadFile, HTTPException, Query, Response, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+from src.database.connection import get_db
+from src.database.models import FeedbackLog
 from pydantic import BaseModel, Field
 from loguru import logger
 import networkx as nx
@@ -35,6 +38,7 @@ from src.pipeline.query_engine import (
 )
 from src.storage.chroma_store import VectorStore
 from src.graph.knowledge_graph import get_knowledge_graph
+from src.database.connection import init_db
 import numpy as np
 
 # In-memory feedback store (persisted to disk on each write)
@@ -69,6 +73,7 @@ app.add_middleware(
 def startup_event():
     logger.info("Pre-warming models and services...")
     try:
+        init_db()
         get_embedder()
         get_vector_store()
         get_knowledge_graph()
@@ -352,12 +357,20 @@ async def get_entities():
 
 SUPPORTED_EXTENSIONS = {".txt", ".csv", ".pdf", ".docx"}
 
+def background_ingest_file(file_path: Path):
+    try:
+        pipeline = IngestionPipeline()
+        logger.info(f"Background task starting: Ingesting file {file_path.name}")
+        pipeline.ingest_file(file_path, copy_to_uploads=False)
+        logger.info(f"Background task complete: Successfully ingested {file_path.name}")
+    except Exception as e:
+        logger.error(f"Background ingestion task failed for {file_path.name}: {e}")
+
 @app.post("/ingest/upload")
-async def upload_documents(files: List[UploadFile] = File(...)):
-    """Upload and ingest one or more documents (PDF, DOCX, CSV, TXT)."""
-    pipeline = IngestionPipeline()
-    temp_dir = settings.data_dir / "temp_uploads"
-    temp_dir.mkdir(parents=True, exist_ok=True)
+async def upload_documents(background_tasks: BackgroundTasks, files: List[UploadFile] = File(...)):
+    """Upload and ingest one or more documents (PDF, DOCX, CSV, TXT) in the background."""
+    uploads_dir = settings.corpus_dir / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
     
     try:
         store = get_vector_store()
@@ -392,27 +405,30 @@ async def upload_documents(files: List[UploadFile] = File(...)):
             })
             continue
 
-        temp_file_path = temp_dir / safe_filename
+        target_file_path = uploads_dir / safe_filename
         try:
-            # Save file temporarily to disk
-            with open(temp_file_path, "wb") as buffer:
+            # Save file directly to persistent uploads directory
+            with open(target_file_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
                 
-            if temp_file_path.stat().st_size == 0:
+            if target_file_path.stat().st_size == 0:
                 raise ValueError("File is empty or corrupted.")
             
-            # Ingest file (it will copy to uploads persistently)
-            logger.info(f"Uploading and ingesting: {safe_filename}")
-            res = pipeline.ingest_file(temp_file_path, copy_to_uploads=True)
-            results.append(res)
+            # Queue ingestion in background task (FastAPI native thread pool)
+            logger.info(f"Queuing background ingestion for: {safe_filename}")
+            background_tasks.add_task(background_ingest_file, target_file_path)
+            
+            results.append({
+                "doc_id": safe_filename,
+                "status": "queued",
+                "message": "Document queued for background parsing, embedding, and indexing."
+            })
         except Exception as e:
-            logger.error(f"Failed to ingest uploaded file {safe_filename}: {e}")
-            results.append({"doc_id": safe_filename, "status": "error", "error": f"File parsing failed: {str(e)}"})
-        finally:
-            # Clean up temporary file
-            if temp_file_path.exists():
-                os.remove(temp_file_path)
-                
+            logger.error(f"Failed to copy uploaded file {safe_filename}: {e}")
+            if target_file_path.exists():
+                os.remove(target_file_path)
+            results.append({"doc_id": safe_filename, "status": "error", "error": f"Upload failed: {str(e)}"})
+                 
     return {"results": results}
 
 
@@ -509,7 +525,7 @@ def _build_trace(
 
 
 @app.post("/query", response_model=QueryResponse)
-async def query_rag(request: QueryRequest):
+async def query_rag(request: QueryRequest, db: Session = Depends(get_db)):
     """POST /query — retrieve context then generate a structured answer.
 
     Uses query_engine.retrieve_context() (vector + graph) then
@@ -542,12 +558,31 @@ async def query_rag(request: QueryRequest):
                 latency_ms=0,
             )
 
-        # ── Step 1: Retrieve merged context (vector + graph) ────────────────────
+        # ── Step 1: Retrieve merged context (vector + graph) with timing ────────
+        t_ret_start = time.time()
         top_k   = request.top_k or settings.top_k
         context = retrieve_context(request.question, top_k=top_k, filters=request.filters)
+        retrieval_ms = int((time.time() - t_ret_start) * 1000)
 
         # ── Guard: no results found ────────────────────────────────────────────
         if not context["vector_chunks"] and not context["graph_entities"]:
+            latency_ms = int((time.time() - t_start) * 1000)
+            try:
+                from src.database.models import TelemetryLog
+                db_log = TelemetryLog(
+                    query_text=request.question,
+                    retrieval_ms=retrieval_ms,
+                    total_latency_ms=latency_ms,
+                    model_used="N/A",
+                    cache_hit="false",
+                    error_occurred="false"
+                )
+                db.add(db_log)
+                db.commit()
+            except Exception as e:
+                logger.warning(f"Telemetry logging failed: {e}")
+                db.rollback()
+
             return QueryResponse(
                 answer=(
                     "No matching documents or entities were found for your query. "
@@ -558,15 +593,17 @@ async def query_rag(request: QueryRequest):
                 entities_used=[],
                 key_points=[],
                 model_used="N/A",
-                latency_ms=int((time.time() - t_start) * 1000),
+                latency_ms=latency_ms,
             )
 
-        # ── Step 2: Generate answer (LLM / smart fallback) ─────────────────────
+        # ── Step 2: Generate answer (LLM / smart fallback) with timing ──────────
+        t_gen_start = time.time()
         ans = generate_answer(request.question, context, routing_mode=request.routing_mode)
+        generation_ms = int((time.time() - t_gen_start) * 1000)
 
         latency_ms = int((time.time() - t_start) * 1000)
         logger.info(
-            f"/query answered in {latency_ms} ms | "
+            f"/query answered in {latency_ms} ms (retrieval: {retrieval_ms}ms, generation: {generation_ms}ms) | "
             f"confidence={ans.get('confidence')} | model={ans.get('model_used')}"
         )
 
@@ -582,6 +619,24 @@ async def query_rag(request: QueryRequest):
             except Exception:
                 pass
 
+        # Write to TelemetryLog (V2 Observability)
+        try:
+            from src.database.models import TelemetryLog
+            db_log = TelemetryLog(
+                query_text=request.question,
+                retrieval_ms=retrieval_ms,
+                llm_generation_ms=generation_ms,
+                total_latency_ms=latency_ms,
+                model_used=model_used,
+                cache_hit="true" if cache_status == "hit" else "false",
+                error_occurred="false"
+            )
+            db.add(db_log)
+            db.commit()
+        except Exception as e:
+            logger.warning(f"Telemetry db logging failed: {e}")
+            db.rollback()
+
         return QueryResponse(
             answer       = ans.get("answer", ""),
             sources      = ans.get("sources", []),
@@ -596,10 +651,37 @@ async def query_rag(request: QueryRequest):
                 model=model_used, thinking=thinking, complexity=complexity,
             ),
         )
-
-    except HTTPException:
-        raise
+    except HTTPException as http_err:
+        try:
+            from src.database.models import TelemetryLog
+            db_log = TelemetryLog(
+                query_text=request.question,
+                total_latency_ms=int((time.time() - t_start) * 1000),
+                model_used="unknown",
+                cache_hit="false",
+                error_occurred="true"
+            )
+            db.add(db_log)
+            db.commit()
+        except Exception as e:
+            logger.warning(f"Telemetry logging failed on error: {e}")
+            db.rollback()
+        raise http_err
     except Exception as e:
+        try:
+            from src.database.models import TelemetryLog
+            db_log = TelemetryLog(
+                query_text=request.question,
+                total_latency_ms=int((time.time() - t_start) * 1000),
+                model_used="unknown",
+                cache_hit="false",
+                error_occurred="true"
+            )
+            db.add(db_log)
+            db.commit()
+        except Exception as tel_err:
+            logger.warning(f"Telemetry logging failed on error: {tel_err}")
+            db.rollback()
         logger.error(f"Error in POST /query: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -968,8 +1050,24 @@ async def run_benchmark(max_questions: int = Query(default=18, le=50)):
 # ── Feedback Endpoint ─────────────────────────────────────────────────────────
 
 @app.post("/feedback")
-async def log_feedback(request: FeedbackRequest):
+async def log_feedback(request: FeedbackRequest, db: Session = Depends(get_db)):
     """Log thumbs-up (+1) or thumbs-down (-1) feedback on an answer."""
+    # Write to database (V2 transaction safety)
+    try:
+        log_entry = FeedbackLog(
+            question=request.question,
+            answer=request.answer[:300],
+            rating=request.rating,
+            comment=request.comment or ""
+        )
+        db.add(log_entry)
+        db.commit()
+        logger.info(f"Feedback logged to DB: rating={request.rating}")
+    except Exception as e:
+        logger.error(f"Failed to write feedback to DB: {e}")
+        db.rollback()
+
+    # Legacy JSONL fallback
     entry = {
         "ts":       time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "question": request.question,
@@ -981,9 +1079,9 @@ async def log_feedback(request: FeedbackRequest):
         _FEEDBACK_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(_FEEDBACK_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        logger.info(f"Feedback logged: rating={request.rating}")
+        logger.info(f"Feedback logged to legacy file: rating={request.rating}")
     except Exception as e:
-        logger.error(f"Failed to write feedback: {e}")
+        logger.error(f"Failed to write legacy feedback file: {e}")
     return {"status": "logged"}
 
 

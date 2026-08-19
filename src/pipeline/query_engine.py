@@ -22,6 +22,8 @@ To enable LLM answers: install Ollama (https://ollama.com) and run
 
 import json
 import copy
+import hashlib
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 from loguru import logger
 import numpy as np
@@ -56,44 +58,35 @@ _KEYWORD_STOP_WORDS = frozenset({
 
 
 class SemanticCache:
-    """Persistent rolling cache for semantic similarity search over recent queries."""
+    """Persistent rolling cache for semantic similarity search over recent queries.
+    
+    Implements a two-tier caching architecture:
+    - Tier 1 (L1): In-memory self.cache for sub-millisecond repeated queries and test compatibility.
+    - Tier 2 (L2): Relational SQLite/PostgreSQL database table persistence.
+    """
 
     def __init__(self, max_size: int = 500, threshold: float = 0.95):
         self.max_size = max_size
         self.threshold = threshold
         self.cache = []
-        self.cache_path = settings.data_dir / "semantic_cache.json"
-        self._load_cache()
+        self._load_cache_from_db()
 
-    def _load_cache(self):
-        """Load cache entries from local JSON file."""
+    def _load_cache_from_db(self):
+        """Pre-populate the in-memory L1 cache from the relational L2 database on startup."""
         try:
-            if self.cache_path.exists():
-                with open(self.cache_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    for item in data:
-                        self.cache.append({
-                            "embedding": np.array(item["embedding"]),
-                            "answer": item["answer"]
-                        })
-                logger.info(f"Semantic Cache: Loaded {len(self.cache)} entries from {self.cache_path}")
+            from src.database.connection import get_db_session
+            from src.database.models import SemanticCache as DbCache
+            
+            with get_db_session() as db:
+                cache_records = db.query(DbCache).order_by(DbCache.created_at.asc()).all()
+                for rec in cache_records:
+                    self.cache.append({
+                        "embedding": np.array(rec.query_embedding),
+                        "answer": rec.cached_response
+                    })
+            logger.info(f"Semantic Cache L1 pre-populated: {len(self.cache)} entries loaded from relational DB.")
         except Exception as e:
-            logger.error(f"Semantic Cache: Failed to load cache from disk: {e}")
-
-    def _save_cache(self):
-        """Save cache entries to local JSON file."""
-        try:
-            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-            serializable_cache = []
-            for entry in self.cache:
-                serializable_cache.append({
-                    "embedding": entry["embedding"].tolist(),
-                    "answer": entry["answer"]
-                })
-            with open(self.cache_path, "w", encoding="utf-8") as f:
-                json.dump(serializable_cache, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            logger.error(f"Semantic Cache: Failed to save cache to disk: {e}")
+            logger.error(f"Semantic Cache: Failed to load L1 cache from DB: {e}")
 
     def get(self, query_embedding: np.ndarray) -> Optional[Dict[str, Any]]:
         if not self.cache or query_embedding is None:
@@ -108,6 +101,7 @@ class SemanticCache:
         best_similarity = -1.0
         best_answer = None
 
+        # Query L1 (in-memory) cache
         for entry in self.cache:
             entry_emb = entry["embedding"]
             e_norm = np.linalg.norm(entry_emb)
@@ -131,17 +125,40 @@ class SemanticCache:
         if query_embedding is None or answer is None:
             return
 
-        # Simple rolling FIFO eviction to act as a cache of max size
+        # 1. Update L1 In-Memory Cache (FIFO eviction)
         if len(self.cache) >= self.max_size:
             self.cache.pop(0)
-
-        # Store a deep copy of the answer to prevent modification
         self.cache.append({
             "embedding": query_embedding.copy(),
             "answer": copy.deepcopy(answer)
         })
-        logger.debug(f"Cached answer in semantic cache. Cache size: {len(self.cache)}/{self.max_size}")
-        self._save_cache()
+
+        # 2. Update L2 Persistent Relational DB Cache
+        try:
+            from src.database.connection import get_db_session
+            from src.database.models import SemanticCache as DbCache
+            
+            with get_db_session() as db:
+                count = db.query(DbCache).count()
+                if count >= self.max_size:
+                    # Evict oldest entry in DB
+                    oldest = db.query(DbCache).order_by(DbCache.created_at.asc()).first()
+                    if oldest:
+                        db.delete(oldest)
+                
+                query_text = answer.get("answer", "")[:100]
+                hash_key = hashlib.sha256(f"{query_text}_{datetime.utcnow().timestamp()}".encode()).hexdigest()
+                
+                db_cache = DbCache(
+                    cache_key_hash=hash_key,
+                    query_text=query_text,
+                    query_embedding=query_embedding.tolist()
+                )
+                db_cache.cached_response = answer
+                db.add(db_cache)
+            logger.debug(f"Cached answer in relational database.")
+        except Exception as e:
+            logger.error(f"Semantic Cache: Failed to write to DB: {e}")
 
 
 _semantic_cache = SemanticCache(max_size=500, threshold=0.95)

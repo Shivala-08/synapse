@@ -184,6 +184,44 @@ class IngestionPipeline:
         except ValueError:
             rel_path = str(dest_path)
 
+        # 6.5. Synchronize with Relational DB (FastAPI V2 engine)
+        try:
+            from src.database.connection import get_db_session
+            from src.database.models import Document as DbDoc, DocumentChunk as DbChunk
+            
+            with get_db_session() as db:
+                db_doc = db.query(DbDoc).filter(DbDoc.doc_id == doc_id).first()
+                if not db_doc:
+                    db_doc = DbDoc(
+                        doc_id=doc_id,
+                        filename=filename,
+                        file_path=rel_path,
+                        mime_type=suffix.lstrip("."),
+                        chunk_count=len(chunks)
+                    )
+                    db.add(db_doc)
+                else:
+                    db_doc.chunk_count = len(chunks)
+                    db_doc.file_path = rel_path
+                    db_doc.mime_type = suffix.lstrip(".")
+                
+                # Clear existing chunks for clean ups
+                db.query(DbChunk).filter(DbChunk.doc_id == doc_id).delete()
+                
+                for idx, c in enumerate(chunks):
+                    db_chunk = DbChunk(
+                        chunk_id=c["id"],
+                        doc_id=doc_id,
+                        chunk_index=c["metadata"]["chunk_index"],
+                        content=c["text"],
+                        embedding=embeddings[idx]
+                    )
+                    db_chunk.parsed_metadata = c["metadata"]
+                    db.add(db_chunk)
+            logger.info(f"Relational DB: Successfully indexed {len(chunks)} chunks for {doc_id}")
+        except Exception as db_err:
+            logger.error(f"Relational DB index failed for {doc_id}: {db_err}")
+
         # 7. Update document registry
         registry = self._load_registry()
         registry[doc_id] = {

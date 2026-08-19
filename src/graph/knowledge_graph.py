@@ -1,6 +1,6 @@
 """Knowledge graph builder using NetworkX for industrial entities.
 
-Builds a graph from extracted entities with typed nodes and relationships.
+Backed by relational database tables in PostgreSQL/SQLite for V2 persistence and concurrency safety.
 """
 
 import json
@@ -10,7 +10,8 @@ from loguru import logger
 import networkx as nx
 
 from src.config import settings
-
+from src.database.connection import get_db_session
+from src.database.models import GraphNode as DbNode, GraphEdge as DbEdge
 
 # Node type colors for visualization
 NODE_COLORS = {
@@ -29,71 +30,130 @@ NODE_COLORS = {
 
 
 class IndustrialKnowledgeGraph:
-    """NetworkX-based knowledge graph for industrial entities."""
+    """NetworkX-based knowledge graph backed by PostgreSQL/SQLite database tables."""
 
     def __init__(self, load_from_disk: bool = True):
         self.graph = nx.Graph()
-        self.graph_file = settings.data_dir / "knowledge_graph.json"
-        if load_from_disk:
-            self._load()
+        self._sync_from_db()
 
-    def _load(self):
-        """Load graph from disk if it exists."""
-        if self.graph_file.exists():
-            try:
-                data = json.loads(self.graph_file.read_text(encoding="utf-8"))
-                self.graph = nx.node_link_graph(data, edges="edges")
-                logger.info(f"Loaded knowledge graph: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges")
-            except Exception as e:
-                logger.warning(f"Could not load graph, starting fresh: {e}")
-                self.graph = nx.Graph()
-        else:
-            logger.info("Starting with empty knowledge graph")
+    def _sync_from_db(self):
+        """Load node and edge records from database to build the in-memory NetworkX index."""
+        try:
+            self.graph.clear()
+            with get_db_session() as db:
+                nodes = db.query(DbNode).all()
+                edges = db.query(DbEdge).all()
+
+                for node in nodes:
+                    attrs = node.attributes
+                    attrs["type"] = node.node_type
+                    attrs["color"] = NODE_COLORS.get(node.node_type, "#6b7280")
+                    attrs["doc_id"] = node.doc_id
+                    self.graph.add_node(node.node_id, **attrs)
+
+                for edge in edges:
+                    attrs = edge.attributes
+                    attrs["relation"] = edge.relation
+                    self.graph.add_edge(edge.source_id, edge.target_id, **attrs)
+
+            logger.info(
+                f"Knowledge Graph synced from DB: {self.graph.number_of_nodes()} nodes, "
+                f"{self.graph.number_of_edges()} edges"
+            )
+        except Exception as e:
+            logger.error(f"Failed to sync Knowledge Graph from DB: {e}")
 
     def save(self):
-        """Persist graph to disk."""
-        try:
-            self.graph_file.parent.mkdir(parents=True, exist_ok=True)
-            data = nx.node_link_data(self.graph, edges="edges")
-            self.graph_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-            logger.info(f"Saved knowledge graph: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges")
-        except Exception as e:
-            logger.error(f"Failed to save knowledge graph: {e}")
-
-    def add_entity(self, entity_id: str, entity_type: str, **attrs):
-        """Add an entity node to the graph."""
-        if self.graph.has_node(entity_id):
-            # Node may already exist (e.g. auto-created by add_edge before its
-            # add_entity call); complete missing type/color attributes so it is
-            # not rendered as 'unknown' in the UI.
-            node = self.graph.nodes[entity_id]
-            if "type" not in node:
-                node["type"] = entity_type
-                node.setdefault("color", NODE_COLORS.get(entity_type, "#6b7280"))
-            for k, v in attrs.items():
-                node.setdefault(k, v)
-            return
-        self.graph.add_node(
-            entity_id,
-            type=entity_type,
-            color=NODE_COLORS.get(entity_type, "#6b7280"),
-            **attrs,
+        """Persist graph to database. (Already committed via relational writes, log only)."""
+        logger.info(
+            f"Relational Graph persistent status: {self.graph.number_of_nodes()} nodes, "
+            f"{self.graph.number_of_edges()} edges in DB."
         )
 
+    def add_entity(self, entity_id: str, entity_type: str, **attrs):
+        """Add an entity node to the database and in-memory index."""
+        try:
+            doc_id = attrs.pop("doc_id", None)
+            
+            # Sync to in-memory graph
+            mem_attrs = dict(attrs)
+            mem_attrs["type"] = entity_type
+            mem_attrs["color"] = NODE_COLORS.get(entity_type, "#6b7280")
+            if doc_id:
+                mem_attrs["doc_id"] = doc_id
+            
+            if self.graph.has_node(entity_id):
+                for k, v in mem_attrs.items():
+                    self.graph.nodes[entity_id][k] = v
+            else:
+                self.graph.add_node(entity_id, **mem_attrs)
+
+            # Sync to DB
+            with get_db_session() as db:
+                db_node = db.query(DbNode).filter(DbNode.node_id == entity_id).first()
+                if not db_node:
+                    db_node = DbNode(
+                        node_id=entity_id,
+                        node_type=entity_type,
+                        doc_id=doc_id
+                    )
+                    db_node.attributes = attrs
+                    db.add(db_node)
+                else:
+                    db_node.node_type = entity_type
+                    if doc_id:
+                        db_node.doc_id = doc_id
+                    curr_attrs = db_node.attributes
+                    curr_attrs.update(attrs)
+                    db_node.attributes = curr_attrs
+        except Exception as e:
+            logger.error(f"Failed to add entity node {entity_id} to DB: {e}")
+
     def add_relationship(self, source: str, target: str, relation: str, **attrs):
-        """Add a relationship edge between two entities."""
-        if not self.graph.has_edge(source, target):
-            self.graph.add_edge(source, target, relation=relation, **attrs)
+        """Add a relationship edge between two entities in DB and in-memory index."""
+        try:
+            # Sync to in-memory graph
+            mem_attrs = dict(attrs)
+            mem_attrs["relation"] = relation
+            self.graph.add_edge(source, target, **mem_attrs)
+
+            # Sync to DB
+            with get_db_session() as db:
+                # Ensure source and target nodes exist in DB
+                src_node = db.query(DbNode).filter(DbNode.node_id == source).first()
+                if not src_node:
+                    src_node = DbNode(node_id=source, node_type="unknown")
+                    db.add(src_node)
+                    self.graph.add_node(source, type="unknown", color="#6b7280")
+
+                tgt_node = db.query(DbNode).filter(DbNode.node_id == target).first()
+                if not tgt_node:
+                    tgt_node = DbNode(node_id=target, node_type="unknown")
+                    db.add(tgt_node)
+                    self.graph.add_node(target, type="unknown", color="#6b7280")
+
+                db_edge = db.query(DbEdge).filter(
+                    DbEdge.source_id == source,
+                    DbEdge.target_id == target,
+                    DbEdge.relation == relation
+                ).first()
+                if not db_edge:
+                    db_edge = DbEdge(
+                        source_id=source,
+                        target_id=target,
+                        relation=relation
+                    )
+                    db_edge.attributes = attrs
+                    db.add(db_edge)
+                else:
+                    curr_attrs = db_edge.attributes
+                    curr_attrs.update(attrs)
+                    db_edge.attributes = curr_attrs
+        except Exception as e:
+            logger.error(f"Failed to add relationship edge {source}->{target} to DB: {e}")
 
     def add_document_entities(self, doc_id: str, text: str, entities: dict, metadata: Optional[dict] = None):
-        """Add all entities from a document to the graph and create relationships.
-
-        Args:
-            doc_id: Document identifier.
-            text: Full text content of the document.
-            entities: Entity dict from EntityExtractor.extract_all().
-            metadata: Optional metadata dict.
-        """
+        """Add all entities from a document to the graph and create relationships."""
         metadata = metadata or {}
         added_nodes = 0
         added_edges = 0
@@ -204,11 +264,7 @@ class IndustrialKnowledgeGraph:
         logger.info(f"Added {added_nodes} nodes, {added_edges} edges from document {doc_id}")
 
     def get_entity_neighbors(self, entity_id: str, depth: int = 1) -> dict:
-        """Get neighbors of an entity up to a given depth.
-
-        Returns:
-            Dict with center entity and its neighbors with relationships.
-        """
+        """Get neighbors of an entity up to a given depth."""
         if not self.graph.has_node(entity_id):
             return {"center": entity_id, "neighbors": [], "error": f"Entity '{entity_id}' not found"}
 
@@ -242,15 +298,7 @@ class IndustrialKnowledgeGraph:
         return {"center": center, "neighbors": neighbors}
 
     def to_json(self, max_nodes: int = 500) -> dict:
-        """Export graph as nodes/edges JSON for visualization.
-
-        Args:
-            max_nodes: Maximum number of nodes to return (for performance).
-
-        Returns:
-            Dict with nodes and edges arrays.
-        """
-        # Sort nodes by type for better visualization
+        """Export graph as nodes/edges JSON for visualization."""
         node_list = []
         for node_id, attrs in self.graph.nodes(data=True):
             node_list.append({
@@ -261,16 +309,13 @@ class IndustrialKnowledgeGraph:
                 "size": self.graph.degree(node_id) + 5,
             })
 
-        # Limit nodes if graph is too large
         if len(node_list) > max_nodes:
-            # Keep nodes with highest degree
             node_list.sort(key=lambda x: x["size"], reverse=True)
             kept_ids = {n["id"] for n in node_list[:max_nodes]}
             node_list = node_list[:max_nodes]
         else:
             kept_ids = {n["id"] for n in node_list}
 
-        # Build edges (only include edges between kept nodes)
         edge_list = []
         for u, v, attrs in self.graph.edges(data=True):
             if u in kept_ids and v in kept_ids:
@@ -283,44 +328,28 @@ class IndustrialKnowledgeGraph:
         return {"nodes": node_list, "edges": edge_list}
 
     def get_entities_by_type(self) -> dict:
-        """Get all entities grouped by type.
-
-        Returns:
-            Dict mapping entity type -> list of entity IDs.
-        """
+        """Get all entities grouped by type."""
         result = {}
         for node_id, attrs in self.graph.nodes(data=True):
             etype = attrs.get("type", "unknown")
             if etype not in result:
                 result[etype] = []
             result[etype].append(node_id)
-        # Sort each list
         for key in result:
             result[key].sort()
         return result
 
     def search_nodes(self, query: str, node_types: Optional[list] = None, limit: int = 50) -> list:
-        """Search for nodes by name/label matching the query string.
-
-        Args:
-            query: Search term to match against node IDs.
-            node_types: Optional list of node types to filter by.
-            limit: Maximum number of results to return.
-
-        Returns:
-            List of matching node dicts with id, type, color, degree.
-        """
+        """Search for nodes by name/label matching the query string."""
         query_lower = query.lower()
         matches = []
 
         for node_id, attrs in self.graph.nodes(data=True):
             etype = attrs.get("type", "unknown")
 
-            # Filter by type if specified
             if node_types and etype not in node_types:
                 continue
 
-            # Match query against node ID (case-insensitive)
             if query_lower in node_id.lower():
                 matches.append({
                     "id": node_id,
@@ -329,22 +358,16 @@ class IndustrialKnowledgeGraph:
                     "degree": self.graph.degree(node_id),
                 })
 
-        # Sort by degree (most connected first)
         matches.sort(key=lambda x: x["degree"], reverse=True)
         return matches[:limit]
 
     def get_node_metadata(self, node_id: str) -> dict:
-        """Get full metadata for a node including neighbors and linked resources.
-
-        Returns:
-            Dict with node info, neighbors, doc_id, and chunk references.
-        """
+        """Get full metadata for a node including neighbors and linked resources."""
         if not self.graph.has_node(node_id):
             return {"error": f"Node '{node_id}' not found"}
 
         attrs = self.graph.nodes[node_id]
 
-        # Get immediate neighbors
         neighbors = []
         for neighbor in self.graph.neighbors(node_id):
             edge_data = self.graph.edges[node_id, neighbor]
@@ -355,7 +378,6 @@ class IndustrialKnowledgeGraph:
                 "relation": edge_data.get("relation", "related_to"),
             })
 
-        # Get connected entities by type
         neighbor_types = {}
         for n in neighbors:
             ntype = n["type"]
@@ -375,19 +397,9 @@ class IndustrialKnowledgeGraph:
         }
 
     def get_top_nodes(self, n: int = 30, node_types: Optional[list] = None) -> list:
-        """Get top N most-connected nodes for initial graph loading.
-
-        Args:
-            n: Number of top nodes to return.
-            node_types: Optional filter by node types.
-
-        Returns:
-            List of top node IDs sorted by degree.
-        """
-        # Compute degrees once (O(V)) instead of per-node (O(V * degree))
+        """Get top N most-connected nodes for initial graph loading."""
         all_degrees = dict(self.graph.degree())
         
-        # Filter by type if specified
         if node_types:
             node_degrees = [
                 (node_id, all_degrees[node_id])
@@ -401,14 +413,7 @@ class IndustrialKnowledgeGraph:
         return [node_id for node_id, _ in node_degrees[:n]]
 
     def get_subgraph_for_nodes(self, node_ids: list) -> dict:
-        """Get a subgraph containing only the specified nodes and their internal edges.
-
-        Args:
-            node_ids: List of node IDs to include.
-
-        Returns:
-            Dict with nodes and edges for visualization.
-        """
+        """Get a subgraph containing only the specified nodes and their internal edges."""
         id_set = set(node_ids)
 
         nodes = []
@@ -435,11 +440,7 @@ class IndustrialKnowledgeGraph:
         return {"nodes": nodes, "edges": edges}
 
     def find_path(self, source: str, target: str) -> dict:
-        """Find shortest path between two entities.
-
-        Returns:
-            Dict with path (list of node IDs), edges (with relations), and metadata.
-        """
+        """Find shortest path between two entities."""
         if not self.graph.has_node(source):
             return {"error": f"Source entity '{source}' not found", "path": [], "edges": []}
         if not self.graph.has_node(target):
@@ -452,7 +453,6 @@ class IndustrialKnowledgeGraph:
         except Exception as e:
             return {"error": str(e), "path": [], "edges": []}
 
-        # Build path nodes and edges with metadata
         path_nodes = []
         for node_id in path:
             attrs = self.graph.nodes[node_id]
@@ -492,11 +492,15 @@ class IndustrialKnowledgeGraph:
         }
 
     def clear(self):
-        """Clear the entire graph."""
-        self.graph.clear()
-        if self.graph_file.exists():
-            self.graph_file.unlink()
-        logger.warning("Knowledge graph cleared")
+        """Clear the entire graph from DB and memory index."""
+        try:
+            self.graph.clear()
+            with get_db_session() as db:
+                db.query(DbEdge).delete()
+                db.query(DbNode).delete()
+            logger.warning("Knowledge Graph cleared from DB and memory.")
+        except Exception as e:
+            logger.error(f"Failed to clear graph in DB: {e}")
 
 
 # Module-level singleton

@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     corpus_dir: Path = data_dir / "corpus"
     benchmarks_dir: Path = data_dir / "benchmarks"
 
+    # Database
+    database_url: str = Field(default="sqlite:///data/synapse.db", description="Database connection URL")
+
     # Embedding model
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_dim: int = 384

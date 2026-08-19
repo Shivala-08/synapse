@@ -20,11 +20,12 @@ from src.graph.knowledge_graph import IndustrialKnowledgeGraph, get_knowledge_gr
 def setup_graph():
     """Create a fresh graph with test data.
     
-    Uses load_from_disk=False to avoid contamination from stale JSON files.
+    Uses load_from_disk=False to avoid contamination from stale database/JSON files.
     """
     # Reset the singleton to get a clean instance
     kg_module._kg = None
     kg = IndustrialKnowledgeGraph(load_from_disk=False)
+    kg.clear()
 
     # Add equipment nodes
     for i in range(1, 6):

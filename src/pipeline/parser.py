@@ -18,17 +18,34 @@ def parse_txt(file_path: Path) -> str:
 
 
 def parse_pdf(file_path: Path) -> str:
-    """Parse PDF files using pdfplumber."""
+    """Parse PDF files using pdfplumber, falling back to Tesseract OCR for scanned pages."""
     try:
         text_pages = []
         with pdfplumber.open(file_path) as pdf:
             for i, page in enumerate(pdf.pages):
                 page_text = page.extract_text()
-                if page_text:
+                if page_text and len(page_text.strip()) > 10:
                     text_pages.append(page_text)
                 else:
-                    logger.warning(f"No text found on page {i+1} of PDF {file_path}")
-        return "\n\n".join(text_pages)
+                    logger.warning(f"Page {i+1} of PDF {file_path} appears to be scanned/empty. Attempting OCR fallback...")
+                    try:
+                        # Extract page image and run OCR
+                        page_image = page.to_image(resolution=150).original
+                        import pytesseract
+                        ocr_text = pytesseract.image_to_string(page_image)
+                        if ocr_text and len(ocr_text.strip()) > 5:
+                            text_pages.append(ocr_text)
+                            logger.info(f"Successfully extracted {len(ocr_text)} chars from page {i+1} using Tesseract OCR fallback.")
+                        else:
+                            text_pages.append("")
+                    except Exception as ocr_err:
+                        logger.warning(f"OCR failed for page {i+1}: {ocr_err}. Is Tesseract binary installed?")
+                        text_pages.append("")
+        
+        full_text = "\n\n".join(text_pages).strip()
+        if not full_text:
+            logger.error(f"Failed to extract any text from PDF {file_path} (parsed 0 characters).")
+        return full_text
     except Exception as e:
         logger.error(f"Error parsing PDF file {file_path}: {e}")
         raise e
