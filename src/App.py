@@ -1,9 +1,6 @@
-"""Synapse — AI-Powered Knowledge Intelligence UI.
+"""Synapse — RAG + Knowledge Graph UI (Streamlit).
 
 Features:
-  • Cinematic animated hero header with gradient glow
-  • Glassmorphism cards and panels
-  • Neon glow accents and animated borders
   • Real-time streaming chat interface
   • Interactive 3D knowledge graph visualization
   • Adaptive query routing with complexity classification
@@ -18,6 +15,7 @@ import streamlit.components.v1 as components
 import requests
 import json
 import os
+from src.config import list_domains, load_domain_profile
 from src.ui.design_system import (
     inject_global_css, hero_header, gradient_divider, section_header,
     sidebar_brand, sidebar_footer, llm_status_pill, confidence_badge,
@@ -34,8 +32,8 @@ except ImportError:
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Synapse — AI-Powered Knowledge Intelligence",
-    page_icon="K",
+    page_title="Synapse",
+    page_icon="S",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -44,9 +42,9 @@ API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 # ── Inject shared design system CSS ────────────────────────────────────────────
 inject_global_css(
-    page_title="Synapse — AI-Powered Knowledge Intelligence",
-    description="Synapse — The next-generation industrial knowledge intelligence system combining RAG, Hybrid Search, and Knowledge Graphs for compliance gap analysis.",
-    keywords="RAG, Industrial Intelligence, Safety Regulations, Knowledge Graph, Hybrid Search, BM25, ChromaDB, FastAPI, Streamlit",
+    page_title="Synapse",
+    description="Graph-Augmented RAG Intelligence Engine.",
+    keywords="RAG, Knowledge Graph, Hybrid Search, BM25, ChromaDB, FastAPI, Streamlit",
     canonical_path="/"
 )
 
@@ -156,7 +154,7 @@ status_html = (
 
 hero_header(
     title="Synapse",
-    subtitle="AI-Powered Knowledge Intelligence",
+    subtitle="Graph-Augmented RAG Intelligence",
     badge_text="",
     extra_right=status_html,
 )
@@ -168,6 +166,27 @@ hero_header(
 with st.sidebar:
     sidebar_brand(name="SYNAPSE")
 
+    # ── Domain Switcher ────────────────────────────────────────────────────
+    _domains = list_domains()
+    if _domains:
+        _prev_domain = st.session_state.get("active_domain", _domains[0])
+        _domain_id = st.selectbox(
+            "Domain",
+            _domains,
+            index=_domains.index(_prev_domain) if _prev_domain in _domains else 0,
+            key="domain_select",
+        )
+        st.session_state["active_domain"] = _domain_id
+        _dp = load_domain_profile(_domain_id)
+        st.session_state["domain_profile"] = _dp
+        st.caption(f"Active: **{_dp.display_name}**")
+    else:
+        _domain_id = None
+        st.session_state["active_domain"] = None
+        st.session_state["domain_profile"] = None
+        st.warning("No domain profiles found. Create domains/*.yaml files.")
+
+    gradient_divider()
     st.markdown("### **System Status**")
     try:
         h = requests.get(f"{API_URL}/health", timeout=15)
@@ -320,11 +339,11 @@ with tab_chat:
     # Example queries (Phase 4.1) — a visitor never faces a blank text box
     with st.expander("💡 Try these questions", expanded=not st.session_state.get("messages")):
         _examples = [
-            ("⚡ Simple lookup", "What are the electrical safety requirements per OISD-130?"),
-            ("🔗 Multi-hop", "Which regulation applies to work order WO-2026-1001?"),
-            ("⚖️ Contradiction", "Do the safety manual and OISD-117 disagree on the internal inspection frequency for tank TNK-T03?"),
-            ("📋 Compliance gap", "Is there a documented requirement for lockout/tagout procedures?"),
-            ("🗂️ Record lookup", "What is the current status of permit PRM-2026-5000?"),
+            ("⚡ Simple lookup", "What are the safety requirements for PUMP-A01?"),
+            ("🔗 Multi-hop", "Which regulation applies to work order WO-1001?"),
+            ("⚖️ Comparison", "Compare the inspection frequencies for Group A and Group B tanks."),
+            ("📋 Compliance", "Is there a documented requirement for lockout/tagout procedures?"),
+            ("🗂️ Record", "What is the current status of permit PRM-5000?"),
         ]
         _ex_cols = st.columns(len(_examples))
         for _i, (_label, _question) in enumerate(_examples):
@@ -335,7 +354,7 @@ with tab_chat:
 
     # Input
     user_query = st.chat_input(
-        "Ask a safety or regulatory question… (e.g. 'What PPE is required for hot work near COMP-C01?')"
+        "Ask a question about your documents…"
     )
 
     # An example-query button supplies the question on the next rerun
@@ -793,7 +812,7 @@ with tab_bench:
                 st.error(f"Error: {e}")
 
     gradient_divider()
-    st.info("**Scoring method:** Embedding similarity (semantic match) via `all-MiniLM-L6-v2`. A question passes if the cosine similarity is ≥ 0.55 and the expected source documents are retrieved. Keyword-overlap stats are also tracked for comparison.")
+    st.info("**Scoring method:** Embedding similarity (semantic match) via `all-MiniLM-L6-v2`. A question passes if the cosine similarity is ≥ 0.55 and the expected source documents are retrieved.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -805,7 +824,7 @@ with tab_setup:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(settings_section("Core Corpus Initialisation"), unsafe_allow_html=True)
-        st.write("Index all pre-bundled files: OISD / DGMS / Factory Act regulatory docs plus synthetic work orders, permits, and incident reports.")
+        st.write("Index all documents in the default corpus directories.")
         if st.button(" Scan & Index Default Corpus", use_container_width=True):
             with st.spinner("Parsing, embedding, and building knowledge graph… (~60 s)"):
                 try:

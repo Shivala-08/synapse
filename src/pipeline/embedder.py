@@ -137,7 +137,14 @@ class TextEmbedder:
     @lru_cache(maxsize=128)
     def _cached_embed_query(self, query: str) -> list[float]:
         res = self.embed_texts([query])
-        return res[0] if res else [0.0] * self.dim
+        if not res or len(res[0]) != self.dim:
+            # A zero/garbage vector would silently corrupt retrieval AND the
+            # semantic cache. Fail loudly instead — callers already handle
+            # exceptions.
+            raise RuntimeError(
+                f"Embedding failed for query (got {0 if not res else len(res[0])} dims, expected {self.dim})."
+            )
+        return res[0]
 
     def embed_query(self, query: str) -> list[float]:
         """Generate embedding for a single query."""

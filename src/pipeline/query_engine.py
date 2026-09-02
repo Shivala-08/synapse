@@ -9,15 +9,10 @@ retrieve_context(query, top_k, collection_name)
         {vector_chunks: [...], graph_entities: [...], graph_relations: [...]}
 
 generate_answer(query, context)
-    Builds a structured RAG prompt from the context object, calls the local LLM
-    (Ollama if running, otherwise smart-fallback), and safe-parses the required
-    JSON response:
+    Builds a structured RAG prompt from the context object, calls the LLM
+    (NVIDIA NIM, Ollama, or smart-fallback), and safe-parses the JSON response:
         {answer: str, sources: [{doc_id, excerpt}], confidence: float,
          entities_used: [str], key_points: [str]}
-
-The module does NOT call the Claude API — it uses Ollama (local, no API key).
-To enable LLM answers: install Ollama (https://ollama.com) and run
-  ollama pull llama3.2 && ollama serve
 """
 
 import json
@@ -28,7 +23,7 @@ from typing import Dict, Any, List, Optional
 from loguru import logger
 import numpy as np
 
-from src.config import settings
+from src.config import settings, DomainProfile
 from src.pipeline.embedder import TextEmbedder
 from src.storage.chroma_store import VectorStore
 from src.pipeline.extractor import extract_entities
@@ -40,6 +35,7 @@ from src.pipeline.bm25_index import get_bm25_index
 _embedder: Optional[TextEmbedder] = None
 _vector_store: Optional[VectorStore] = None
 _cross_encoder: Optional[Any] = None
+_vector_stores_by_domain: Dict[str, VectorStore] = {}
 
 # Stop words for keyword extraction in re-ranking boost
 _KEYWORD_STOP_WORDS = frozenset({
@@ -147,7 +143,11 @@ class SemanticCache:
                         db.delete(oldest)
                 
                 query_text = answer.get("answer", "")[:100]
-                hash_key = hashlib.sha256(f"{query_text}_{datetime.utcnow().timestamp()}".encode()).hexdigest()
+                # Deterministic key: hash of query text + answer text (not timestamp)
+                # This ensures duplicate semantic matches don't create infinite DB rows
+                hash_key = hashlib.sha256(
+                    f"{query_text}_{answer.get('model_used', '')}".encode()
+                ).hexdigest()
                 
                 db_cache = DbCache(
                     cache_key_hash=hash_key,
@@ -172,9 +172,22 @@ def get_embedder() -> TextEmbedder:
     return _embedder
 
 
-def get_vector_store(collection_name: str = None) -> VectorStore:
-    """Get or create the vector store instance for the specified collection."""
+def get_vector_store(
+    collection_name: str = None,
+    domain_profile: Optional[DomainProfile] = None,
+) -> VectorStore:
+    """Get or create the vector store instance.
+
+    When a DomainProfile is given, the collection name comes from the profile.
+    When only a collection_name is given, use that.
+    With neither, fall back to the default collection.
+    """
     global _vector_store
+    if domain_profile is not None:
+        key = domain_profile.domain_id
+        if key not in _vector_stores_by_domain:
+            _vector_stores_by_domain[key] = VectorStore(domain_profile=domain_profile)
+        return _vector_stores_by_domain[key]
     name = collection_name or settings.chroma_collection
     if _vector_store is None or _vector_store.collection_name != name:
         _vector_store = VectorStore(collection_name=name)
@@ -212,7 +225,7 @@ def init_bm25_index_lazy():
             logger.error(f"BM25Index: Failed to build index lazily: {e}")
 
 
-def retrieve_context(query: str, top_k: int = 5, collection_name: str = None, filters: dict = None) -> Dict[str, Any]:
+def retrieve_context(query: str, top_k: int = 5, collection_name: str = None, filters: dict = None, domain_profile: Optional[DomainProfile] = None) -> Dict[str, Any]:
     """Retrieve and merge context from ChromaDB (vector) and NetworkX (graph).
 
     Args:
@@ -259,7 +272,7 @@ def retrieve_context(query: str, top_k: int = 5, collection_name: str = None, fi
 
     # 1. Embed the query and retrieve top_k chunks from ChromaDB (diverse search)
     embedder = get_embedder()
-    store = get_vector_store(collection_name)
+    store = get_vector_store(collection_name, domain_profile=domain_profile)
     
     query_embedding = embedder.embed_query(query)
     
@@ -410,7 +423,7 @@ def retrieve_context(query: str, top_k: int = 5, collection_name: str = None, fi
             logger.debug(f"Capped to {len(query_entity_ids)} entities for graph traversal")
 
         # 3. Traverse the NetworkX graph 1-hop for each found entity
-        kg = get_knowledge_graph()
+        kg = get_knowledge_graph(domain_profile)
 
         for entity in query_entity_ids:
             # Check if node exists in NetworkX graph
@@ -509,6 +522,63 @@ Respond with ONLY this JSON object — no markdown fences, no preamble, no trail
 """
 
 
+def build_rag_prompt(
+    query: str,
+    chunks: list,
+    entities: list,
+    relations: list,
+) -> tuple[str, list]:
+    """Build the RAG prompt and source list from retrieval context.
+
+    Returns:
+        (prompt, source_list) — the formatted prompt string and the source
+        metadata list for the response.
+    """
+    n_chunks = len(chunks)
+    n_entities = len(entities)
+    n_relations = len(relations)
+
+    # Confidence guidance
+    if n_chunks >= 2 and n_entities >= 1:
+        guidance_conf = "High   (0.80-1.00)"
+    elif n_chunks >= 1 or n_entities >= 1:
+        guidance_conf = "Medium (0.50-0.79)"
+    else:
+        guidance_conf = "Low    (0.00-0.49)"
+
+    # Build numbered source context
+    doc_parts: List[str] = []
+    source_list: List[Dict] = []
+    for i, c in enumerate(chunks, 1):
+        doc_id = c["metadata"].get("doc_id", c.get("chunk_id", "unknown"))
+        text = c["text"].strip()
+        dist = c.get("distance", 0.0)
+        score = round(1.0 - float(dist), 3)
+        doc_parts.append(f"[Source {i}] {doc_id}  (relevance: {score})\n{text}")
+        source_list.append({"doc_id": doc_id, "excerpt": text[:250], "distance": dist})
+
+    doc_context = "\n\n---\n\n".join(doc_parts) or "No documents retrieved."
+
+    # Build graph context string
+    graph_lines: List[str] = []
+    for rel in relations[:10]:
+        graph_lines.append(f"  {rel['source']} --[{rel['relation']}]--> {rel['target']}")
+    if not graph_lines:
+        graph_lines = ["  No knowledge-graph relationships found for this query."]
+    graph_context = "\n".join(graph_lines)
+
+    conf_guide = _CONFIDENCE_GUIDE.format(
+        n_chunks=n_chunks, n_entities=n_entities, n_relations=n_relations,
+    ) + f"  Suggested confidence band: {guidance_conf}"
+
+    prompt = _RAG_TEMPLATE.format(
+        doc_context=doc_context, graph_context=graph_context,
+        question=query, confidence_guide=conf_guide,
+    )
+
+    return prompt, source_list
+
+
 def classify_query_complexity(query: str, chunks: list) -> dict:
     """Shared heuristic complexity classifier for gating LLM thinking mode.
 
@@ -589,57 +659,14 @@ def generate_answer(query: str, context: Dict[str, Any], routing_mode: str = "au
     entities = context.get("graph_entities", [])
     relations = context.get("graph_relations", [])
 
-    # ── Confidence heuristic (passed as guidance to the prompt) ──────────────
-    n_chunks    = len(chunks)
-    n_entities  = len(entities)
-    n_relations = len(relations)
-
-    # Baseline confidence from retrieval quality — LLM adjusts within this band
-    if n_chunks >= 2 and n_entities >= 1:
-        guidance_conf = "High   (0.80-1.00)"
-    elif n_chunks >= 1 or n_entities >= 1:
-        guidance_conf = "Medium (0.50-0.79)"
-    else:
-        guidance_conf = "Low    (0.00-0.49)"
-
-    # ── Build numbered source context ─────────────────────────────────────────
-    doc_parts: List[str] = []
-    source_list: List[Dict] = []
-    for i, c in enumerate(chunks, 1):
-        doc_id  = c["metadata"].get("doc_id", c.get("chunk_id", "unknown"))
-        text    = c["text"].strip()
-        dist    = c.get("distance", 0.0)
-        score   = round(1.0 - float(dist), 3)
-        doc_parts.append(f"[Source {i}] {doc_id}  (relevance: {score})\n{text}")
-        source_list.append({"doc_id": doc_id, "excerpt": text[:250]})
-
-    doc_context  = "\n\n---\n\n".join(doc_parts) or "No documents retrieved."
-
-    # ── Build graph context string ─────────────────────────────────────────────
-    graph_lines: List[str] = []
-    for rel in relations[:10]:
-        graph_lines.append(
-            f"  {rel['source']} --[{rel['relation']}]--> {rel['target']}"
-        )
-    if not graph_lines:
-        graph_lines = ["  No knowledge-graph relationships found for this query."]
-    graph_context = "\n".join(graph_lines)
-
     entity_ids = [e["id"] for e in entities]
 
-    # ── Build prompt ──────────────────────────────────────────────────────────
-    conf_guide = _CONFIDENCE_GUIDE.format(
-        n_chunks=n_chunks,
-        n_entities=n_entities,
-        n_relations=n_relations,
-    ) + f"  Suggested confidence band: {guidance_conf}"
+    # ── Build prompt (shared helper) ──────────────────────────────────────────
+    prompt, source_list = build_rag_prompt(query, chunks, entities, relations)
 
-    prompt = _RAG_TEMPLATE.format(
-        doc_context=doc_context,
-        graph_context=graph_context,
-        question=query,
-        confidence_guide=conf_guide,
-    )
+    graph_lines = []
+    for rel in relations[:10]:
+        graph_lines.append(f"  {rel['source']} --[{rel['relation']}]--> {rel['target']}")
 
     # ── Determine Model and Reasoning Settings based on Routing Mode ──────────
     if routing_mode == "fast":

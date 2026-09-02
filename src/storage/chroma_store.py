@@ -1,10 +1,11 @@
-"""ChromaDB vector store wrapper for industrial documents."""
+"""ChromaDB vector store wrapper. Supports domain-namespaced collections."""
 
 from pathlib import Path
+from typing import Optional, Union
 import chromadb
 from loguru import logger
 
-from src.config import settings
+from src.config import settings, DomainProfile
 
 
 def get_doc_type(filename: str) -> str:
@@ -17,19 +18,22 @@ def get_doc_type(filename: str) -> str:
         return "incident_report"
     elif "sop" in filename_lower:
         return "sop"
-    elif "regulation" in filename_lower or "oisd" in filename_lower or "dgms" in filename_lower or "fa-sec" in filename_lower:
-        return "regulation"
-    elif "manual" in filename_lower or "safety_manual" in filename_lower:
-        return "sop"
     else:
         return "other"
 
 
 class VectorStore:
-    """Manages ChromaDB collections for document embeddings."""
+    """Manages ChromaDB collections for document embeddings.
 
-    def __init__(self, collection_name: str = None):
-        self.collection_name = collection_name or settings.chroma_collection
+    Accepts either a DomainProfile or a plain collection_name string.
+    When given a DomainProfile, the collection name comes from the profile.
+    """
+
+    def __init__(self, domain_profile: Optional[DomainProfile] = None, collection_name: str = None):
+        if domain_profile is not None:
+            self.collection_name = domain_profile.collection_name
+        else:
+            self.collection_name = collection_name or settings.chroma_collection
         persist_dir = Path(settings.chroma_persist_dir)
         persist_dir.mkdir(parents=True, exist_ok=True)
         self.client = chromadb.PersistentClient(path=str(persist_dir))

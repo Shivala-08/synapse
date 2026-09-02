@@ -1,7 +1,7 @@
-"""Synapse — AI-Powered Knowledge Intelligence — Main API Application.
+"""Synapse — Graph-Augmented RAG Intelligence Engine.
 
-Day 4: Real LLM integration (Ollama, no API key), /benchmark/run, /feedback,
-        /debug/search added.
+FastAPI application providing RAG query, ingestion, knowledge graph,
+and document management endpoints.
 """
 
 import copy
@@ -9,16 +9,18 @@ import json
 import os
 import shutil
 import time
+from contextlib import asynccontextmanager
 
 from functools import lru_cache
 from pathlib import Path
 from typing import List, Optional, Union
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi import File, UploadFile, HTTPException, Query, Response, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 from src.database.connection import get_db
 from src.database.models import FeedbackLog
 from pydantic import BaseModel, Field
@@ -33,7 +35,7 @@ from src.pipeline.compliance import check_compliance
 from src.pipeline.llm import get_llm, NvidiaLLM, OllamaLLM, _extract_json
 from src.pipeline.query_engine import (
     retrieve_context, generate_answer, get_embedder,
-    _RAG_TEMPLATE, _CONFIDENCE_GUIDE, _semantic_cache,
+    build_rag_prompt, _semantic_cache,
     classify_query_complexity, get_vector_store,
 )
 from src.storage.chroma_store import VectorStore
@@ -44,6 +46,38 @@ import numpy as np
 # In-memory feedback store (persisted to disk on each write)
 _FEEDBACK_FILE = settings.data_dir / "feedback.jsonl"
 
+
+def _log_telemetry(
+    db: Session,
+    query_text: str,
+    retrieval_ms: int = 0,
+    generation_ms: int = 0,
+    total_latency_ms: int = 0,
+    model_used: str = "unknown",
+    cache_hit: str = "false",
+    error_occurred: str = "false",
+) -> None:
+    """Write a telemetry row to the database. Errors are logged but never raised."""
+    try:
+        from src.database.models import TelemetryLog
+        db_log = TelemetryLog(
+            query_text=query_text,
+            retrieval_ms=retrieval_ms,
+            llm_generation_ms=generation_ms,
+            total_latency_ms=total_latency_ms,
+            model_used=model_used,
+            cache_hit=cache_hit,
+            error_occurred=error_occurred,
+        )
+        db.add(db_log)
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Telemetry logging failed: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -51,26 +85,27 @@ app = FastAPI(
 )
 
 # Serve static assets (e.g. bundled JS libraries)
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-
 _static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "static")
 if os.path.isdir(_static_dir):
     static_app = StaticFiles(directory=str(_static_dir))
     static_app = CORSMiddleware(static_app, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
     app.mount("/static", static_app, name="static")
 
+# CORS: comma-separated allow-list via CORS_ORIGINS. Unset → allow all origins
+# WITHOUT credentials (Starlette's `*` + allow_credentials=True would echo any
+# origin and effectively enable credentialed cross-site access).
+_cors_list = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_cors_list if _cors_list else ["*"],
+    allow_credentials=bool(_cors_list),
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-@app.on_event("startup")
-def startup_event():
+@asynccontextmanager
+async def lifespan(application: FastAPI):
     logger.info("Pre-warming models and services...")
     try:
         init_db()
@@ -81,6 +116,37 @@ def startup_event():
         logger.info("Pre-warming complete. All services ready.")
     except Exception as e:
         logger.error(f"Error during startup pre-warming: {e}")
+    if not settings.admin_api_key:
+        if settings.require_admin_key:
+            logger.critical(
+                "ADMIN_API_KEY is NOT set but require_admin_key=True. "
+                "Refusing to start in production mode without authentication. "
+                "Set ADMIN_API_KEY in your .env file."
+            )
+            raise RuntimeError(
+                "ADMIN_API_KEY is required when require_admin_key=True. "
+                "Set it in your .env file before starting the server."
+            )
+        logger.warning(
+            "ADMIN_API_KEY is NOT set — destructive endpoints (/ingest/*, "
+            "/benchmark/run, /debug/search) are OPEN to anyone who can reach "
+            "this server. Set ADMIN_API_KEY before exposing this publicly!"
+        )
+    yield
+
+
+app.router.lifespan_context = lifespan
+
+
+# ── Admin auth guard ──────────────────────────────────────────────────────
+# When ADMIN_API_KEY is configured, protected endpoints require header
+# X-API-Key: <key>. Unconfigured → open (local dev), with a startup warning.
+async def require_admin(request: Request) -> None:
+    if not settings.admin_api_key:
+        return
+    key = request.headers.get("x-api-key", "")
+    if key != settings.admin_api_key:
+        raise HTTPException(status_code=403, detail="Forbidden: missing or invalid X-API-Key header.")
 
 
 class ComplianceRequest(BaseModel):
@@ -92,7 +158,9 @@ class ComplianceRequest(BaseModel):
 class QueryRequest(BaseModel):
     """Schema for incoming RAG queries."""
     question: str = Field(..., min_length=1, max_length=1000, description="The query string")
-    top_k: Optional[int] = Field(settings.top_k, ge=1, le=20)
+    # NOTE: default must satisfy the le=20 constraint — Pydantic v2 does NOT
+    # validate defaults, so an out-of-range default sails through silently.
+    top_k: Optional[int] = Field(default=10, ge=1, le=20)
     filters: Optional[dict] = None
     routing_mode: Optional[str] = Field("auto", description="Routing mode: 'auto', 'fast', or 'deep'")
 
@@ -123,36 +191,7 @@ async def health_check():
     return {"status": "ok", "version": settings.app_version}
 
 
-@app.get("/robots.txt", response_class=Response)
-async def robots_txt():
-    """Serve robots.txt for search engines."""
-    content = (
-        "User-agent: *\n"
-        "Allow: /\n"
-        "Sitemap: http://localhost:8000/sitemap.xml\n"
-    )
-    return Response(content=content, media_type="text/plain")
 
-
-@app.get("/sitemap.xml", response_class=Response)
-async def sitemap_xml():
-    """Serve sitemap.xml for search engines."""
-    content = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        '  <url>\n'
-        '    <loc>http://localhost:8501/</loc>\n'
-        '    <changefreq>daily</changefreq>\n'
-        '    <priority>1.0</priority>\n'
-        '  </url>\n'
-        '  <url>\n'
-        '    <loc>http://localhost:8501/1_Knowledge_Explorer</loc>\n'
-        '    <changefreq>daily</changefreq>\n'
-        '    <priority>0.8</priority>\n'
-        '  </url>\n'
-        '</urlset>'
-    )
-    return Response(content=content, media_type="application/xml")
 
 
 @app.get("/")
@@ -165,10 +204,8 @@ async def root():
     }
 
 
-# --- Compliance Check Endpoint ---
-
 @app.post("/compliance/check")
-async def compliance_check(request: ComplianceRequest):
+def compliance_check(request: ComplianceRequest):
     """Check a regulatory requirement against ingested procedures for gaps."""
     try:
         logger.info(f"Compliance check request: {request.requirement[:100]}...")
@@ -178,8 +215,6 @@ async def compliance_check(request: ComplianceRequest):
         logger.error(f"Error during compliance check: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# --- Knowledge Graph Endpoints ---
 
 @app.get("/graph")
 async def get_graph(max_nodes: int = Query(default=500, le=2000)):
@@ -323,13 +358,14 @@ def _fetch_subgraph_cached(entity_id: str, depth: int) -> Optional[dict]:
 async def get_entity_subgraph(entity_id: str, depth: int = Query(default=1, le=2)):
     """Get subgraph centered on one entity for frontend visualization."""
     try:
-        subgraph = _fetch_subgraph_cached(entity_id, depth)
-        if not subgraph:
+        cached = _fetch_subgraph_cached(entity_id, depth)
+        if not cached:
             raise HTTPException(
                 status_code=404, 
                 detail=f"Entity '{entity_id}' not found in the knowledge graph. Check the ID."
             )
-        return subgraph
+        # Return a deep copy so callers cannot mutate the cached dict
+        return copy.deepcopy(cached)
     except HTTPException:
         raise
     except Exception as e:
@@ -353,8 +389,6 @@ async def get_entities():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# --- Ingestion Endpoints ---
-
 SUPPORTED_EXTENSIONS = {".txt", ".csv", ".pdf", ".docx"}
 
 def background_ingest_file(file_path: Path):
@@ -367,7 +401,11 @@ def background_ingest_file(file_path: Path):
         logger.error(f"Background ingestion task failed for {file_path.name}: {e}")
 
 @app.post("/ingest/upload")
-async def upload_documents(background_tasks: BackgroundTasks, files: List[UploadFile] = File(...)):
+async def upload_documents(
+    background_tasks: BackgroundTasks,
+    files: List[UploadFile] = File(...),
+    _: None = Depends(require_admin),
+):
     """Upload and ingest one or more documents (PDF, DOCX, CSV, TXT) in the background."""
     uploads_dir = settings.corpus_dir / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
@@ -406,10 +444,16 @@ async def upload_documents(background_tasks: BackgroundTasks, files: List[Upload
             continue
 
         target_file_path = uploads_dir / safe_filename
+        max_bytes = settings.max_upload_mb * 1024 * 1024
         try:
-            # Save file directly to persistent uploads directory
+            # Save file directly to persistent uploads directory (size-capped)
             with open(target_file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+                remaining = max_bytes
+                while chunk := file.file.read(1024 * 1024):
+                    remaining -= len(chunk)
+                    if remaining < 0:
+                        raise ValueError(f"File exceeds {settings.max_upload_mb} MB limit.")
+                    buffer.write(chunk)
                 
             if target_file_path.stat().st_size == 0:
                 raise ValueError("File is empty or corrupted.")
@@ -433,7 +477,7 @@ async def upload_documents(background_tasks: BackgroundTasks, files: List[Upload
 
 
 @app.post("/ingest/initialize")
-async def initialize_corpus():
+def initialize_corpus(_: None = Depends(require_admin)):
     """Clear database and ingest all files in default corpus directories."""
     try:
         pipeline = IngestionPipeline()
@@ -444,8 +488,6 @@ async def initialize_corpus():
         raise HTTPException(status_code=500, detail=f"Failed to initialize corpus: {str(e)}")
 
 
-# --- Document Information Endpoints ---
-
 @app.get("/documents")
 async def list_documents():
     """List all ingested documents with metadata."""
@@ -454,7 +496,7 @@ async def list_documents():
 
 
 @app.get("/documents/{doc_id}")
-async def get_document(doc_id: str):
+def get_document(doc_id: str):
     """Get full details and chunks for a specific document."""
     store = get_vector_store()
     
@@ -525,7 +567,7 @@ def _build_trace(
 
 
 @app.post("/query", response_model=QueryResponse)
-async def query_rag(request: QueryRequest, db: Session = Depends(get_db)):
+def query_rag(request: QueryRequest, db: Session = Depends(get_db)):
     """POST /query — retrieve context then generate a structured answer.
 
     Uses query_engine.retrieve_context() (vector + graph) then
@@ -567,22 +609,8 @@ async def query_rag(request: QueryRequest, db: Session = Depends(get_db)):
         # ── Guard: no results found ────────────────────────────────────────────
         if not context["vector_chunks"] and not context["graph_entities"]:
             latency_ms = int((time.time() - t_start) * 1000)
-            try:
-                from src.database.models import TelemetryLog
-                db_log = TelemetryLog(
-                    query_text=request.question,
-                    retrieval_ms=retrieval_ms,
-                    total_latency_ms=latency_ms,
-                    model_used="N/A",
-                    cache_hit="false",
-                    error_occurred="false"
-                )
-                db.add(db_log)
-                db.commit()
-            except Exception as e:
-                logger.warning(f"Telemetry logging failed: {e}")
-                db.rollback()
-
+            _log_telemetry(db, request.question, retrieval_ms=retrieval_ms,
+                           total_latency_ms=latency_ms, model_used="N/A")
             return QueryResponse(
                 answer=(
                     "No matching documents or entities were found for your query. "
@@ -620,22 +648,12 @@ async def query_rag(request: QueryRequest, db: Session = Depends(get_db)):
                 pass
 
         # Write to TelemetryLog (V2 Observability)
-        try:
-            from src.database.models import TelemetryLog
-            db_log = TelemetryLog(
-                query_text=request.question,
-                retrieval_ms=retrieval_ms,
-                llm_generation_ms=generation_ms,
-                total_latency_ms=latency_ms,
-                model_used=model_used,
-                cache_hit="true" if cache_status == "hit" else "false",
-                error_occurred="false"
-            )
-            db.add(db_log)
-            db.commit()
-        except Exception as e:
-            logger.warning(f"Telemetry db logging failed: {e}")
-            db.rollback()
+        _log_telemetry(
+            db, request.question,
+            retrieval_ms=retrieval_ms, generation_ms=generation_ms,
+            total_latency_ms=latency_ms, model_used=model_used,
+            cache_hit="true" if cache_status == "hit" else "false",
+        )
 
         return QueryResponse(
             answer       = ans.get("answer", ""),
@@ -652,36 +670,14 @@ async def query_rag(request: QueryRequest, db: Session = Depends(get_db)):
             ),
         )
     except HTTPException as http_err:
-        try:
-            from src.database.models import TelemetryLog
-            db_log = TelemetryLog(
-                query_text=request.question,
-                total_latency_ms=int((time.time() - t_start) * 1000),
-                model_used="unknown",
-                cache_hit="false",
-                error_occurred="true"
-            )
-            db.add(db_log)
-            db.commit()
-        except Exception as e:
-            logger.warning(f"Telemetry logging failed on error: {e}")
-            db.rollback()
+        _log_telemetry(db, request.question,
+                       total_latency_ms=int((time.time() - t_start) * 1000),
+                       error_occurred="true")
         raise http_err
     except Exception as e:
-        try:
-            from src.database.models import TelemetryLog
-            db_log = TelemetryLog(
-                query_text=request.question,
-                total_latency_ms=int((time.time() - t_start) * 1000),
-                model_used="unknown",
-                cache_hit="false",
-                error_occurred="true"
-            )
-            db.add(db_log)
-            db.commit()
-        except Exception as tel_err:
-            logger.warning(f"Telemetry logging failed on error: {tel_err}")
-            db.rollback()
+        _log_telemetry(db, request.question,
+                       total_latency_ms=int((time.time() - t_start) * 1000),
+                       error_occurred="true")
         logger.error(f"Error in POST /query: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -719,9 +715,11 @@ async def query_rag_stream(request: QueryRequest):
     routing_mode = request.routing_mode or "auto"
     if routing_mode == "auto" and settings.use_semantic_cache:
         try:
-            embedder = get_embedder()
-            qe = np.array(embedder.embed_query(request.question))
-            _cached_res = _semantic_cache.get(qe)
+            # embed_query does an HTTP round-trip — keep it off the event loop
+            def _cache_lookup():
+                emb = np.array(get_embedder().embed_query(request.question))
+                return emb, _semantic_cache.get(emb)
+            qe, _cached_res = await run_in_threadpool(_cache_lookup)
         except Exception as e:
             logger.error(f"Semantic cache read failed in /query/stream: {e}")
             _cached_res = None
@@ -750,7 +748,11 @@ async def query_rag_stream(request: QueryRequest):
         )
 
     top_k = request.top_k or settings.top_k
-    context = retrieve_context(request.question, top_k=top_k, filters=request.filters)
+    # Retrieval = embedding HTTP call + cross-encoder inference + BM25 + spaCy.
+    # All synchronous CPU/IO work — must not block the event loop.
+    context = await run_in_threadpool(
+        retrieve_context, request.question, top_k=top_k, filters=request.filters
+    )
 
     if not context["vector_chunks"] and not context["graph_entities"]:
         async def _no_results_gen():
@@ -758,52 +760,14 @@ async def query_rag_stream(request: QueryRequest):
             yield f"data: {json.dumps({'type': 'done', 'content': ''})}\n\n"
         return StreamingResponse(_no_results_gen(), media_type="text/event-stream")
 
-    # ── Build the prompt (reuses shared helpers from query_engine) ────────────
+    # ── Build the prompt (shared helper — single source of truth) ──────────
 
     chunks   = context.get("vector_chunks", [])
     entities = context.get("graph_entities", [])
     relations = context.get("graph_relations", [])
-
-    n_chunks    = len(chunks)
-    n_entities  = len(entities)
-    n_relations = len(relations)
-
-    if n_chunks >= 2 and n_entities >= 1:
-        guidance_conf = "High   (0.80-1.00)"
-    elif n_chunks >= 1 or n_entities >= 1:
-        guidance_conf = "Medium (0.50-0.79)"
-    else:
-        guidance_conf = "Low    (0.00-0.49)"
-
-    doc_parts: List[str] = []
-    source_list: List[dict] = []
-    for i, c in enumerate(chunks, 1):
-        doc_id  = c["metadata"].get("doc_id", c.get("chunk_id", "unknown"))
-        text    = c["text"].strip()
-        dist    = c.get("distance", 0.0)
-        score   = round(1.0 - float(dist), 3)
-        doc_parts.append(f"[Source {i}] {doc_id}  (relevance: {score})\n{text}")
-        source_list.append({"doc_id": doc_id, "excerpt": text[:250], "distance": dist})
-
-    doc_context = "\n\n---\n\n".join(doc_parts) or "No documents retrieved."
-
-    graph_lines: List[str] = []
-    for rel in relations[:10]:
-        graph_lines.append(f"  {rel['source']} --[{rel['relation']}]--> {rel['target']}")
-    if not graph_lines:
-        graph_lines = ["  No knowledge-graph relationships found for this query."]
-    graph_context = "\n".join(graph_lines)
-
     entity_ids = [e["id"] for e in entities]
 
-    conf_guide = _CONFIDENCE_GUIDE.format(
-        n_chunks=n_chunks, n_entities=n_entities, n_relations=n_relations,
-    ) + f"  Suggested confidence band: {guidance_conf}"
-
-    prompt = _RAG_TEMPLATE.format(
-        doc_context=doc_context, graph_context=graph_context,
-        question=request.question, confidence_guide=conf_guide,
-    )
+    prompt, source_list = build_rag_prompt(request.question, chunks, entities, relations)
 
     # ── Determine Model and Reasoning Settings based on Routing Mode ──────────
     routing_mode = request.routing_mode or "auto"
@@ -821,7 +785,7 @@ async def query_rag_stream(request: QueryRequest):
         tokens_limit = 2048
         logger.info("Routing override: deep reasoning -> model=nvidia/nemotron-3-ultra-550b-a55b, enable_thinking=True")
     else:  # "auto"
-        complexity = classify_query_complexity(request.question, chunks)
+        complexity = await run_in_threadpool(classify_query_complexity, request.question, chunks)
         enable_thinking = complexity["enable_thinking"]
         reasoning_budget = complexity["reasoning_budget"]
         # Simple lookups -> fast 8B model. The 550B's ~40s+ first token blows
@@ -851,16 +815,23 @@ async def query_rag_stream(request: QueryRequest):
 
         try:
             if llm.available and is_nvidia:
-                for token in llm.stream_generate(
+                # stream_generate is a SYNC generator over a blocking SDK call.
+                # Iterating it inline would stall the entire event loop between
+                # tokens; pull each token via the threadpool instead.
+                token_iter = llm.stream_generate(
                     prompt, max_tokens=tokens_limit,
                     enable_thinking=enable_thinking,
                     reasoning_budget=reasoning_budget,
                     model=target_model,
-                ):
+                )
+                while True:
+                    token = await run_in_threadpool(next, token_iter, None)
+                    if token is None:
+                        break
                     full_answer_parts.append(token)
                     yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
             elif llm.available:
-                raw = llm.generate(prompt, max_tokens=settings.max_tokens)
+                raw = await run_in_threadpool(llm.generate, prompt, settings.max_tokens)
                 if raw:
                     full_answer_parts.append(raw)
                     yield f"data: {json.dumps({'type': 'token', 'content': raw})}\n\n"
@@ -892,8 +863,8 @@ async def query_rag_stream(request: QueryRequest):
             if routing_mode == "auto":
                 try:
                     embedder = get_embedder()
-                    qe = np.array(embedder.embed_query(request.question))
-                    _semantic_cache.set(qe, result)
+                    qe = np.array(await run_in_threadpool(embedder.embed_query, request.question))
+                    await run_in_threadpool(_semantic_cache.set, qe, result)
                 except Exception:
                     pass
 
@@ -908,7 +879,7 @@ async def query_rag_stream(request: QueryRequest):
 # ── Benchmark Endpoint ────────────────────────────────────────────────────────
 
 @app.get("/benchmark/run")
-async def run_benchmark(max_questions: int = Query(default=18, le=50)):
+def run_benchmark(max_questions: int = Query(default=18, le=50), _: None = Depends(require_admin)):
     """Run the ground-truth Q&A benchmark and return accuracy metrics."""
     qa_file = settings.benchmarks_dir / "qa_pairs.json"
     if not qa_file.exists():
@@ -1088,7 +1059,7 @@ async def log_feedback(request: FeedbackRequest, db: Session = Depends(get_db)):
 # ── Debug: raw vector search (no LLM) ────────────────────────────────────────
 
 @app.get("/debug/search")
-async def debug_search(
+def debug_search(
     q: str = Query(..., description="Raw search query — no LLM, pure vector similarity"),
     n: int = Query(default=5, le=20),
 ):

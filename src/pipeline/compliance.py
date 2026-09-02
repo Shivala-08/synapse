@@ -1,7 +1,7 @@
-"""Compliance checker for regulatory requirements against ingested procedures.
+"""Compliance checker for requirements against ingested documents.
 
-Analyzes a regulatory requirement against the document corpus to identify
-compliance status and gaps in documented procedures.
+Analyzes a requirement against the document corpus to identify
+compliance status and gaps.
 """
 
 import re
@@ -258,11 +258,11 @@ class ComplianceChecker:
         req_lower = requirement.lower()
 
         # Check for critical safety terms
-        critical_terms = ['safety', 'dangerous', 'hazard', 'emergency', 'fire', 'explosion']
+        critical_terms = ['safety', 'danger', 'hazard', 'emergency', 'critical', 'urgent']
         has_critical = any(term in req_lower for term in critical_terms)
 
         # Check for regulatory references
-        has_regulation = bool(re.search(r'(oisd|dgms|factory act|section \d+)', req_lower))
+        has_regulation = bool(re.search(r'(section \d+|part \d+|regulation|standard|code)', req_lower))
 
         if has_critical and has_regulation:
             return "critical"

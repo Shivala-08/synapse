@@ -1,4 +1,4 @@
-"""Verification script for Day 2 FastAPI endpoints.
+"""Verification script for FastAPI endpoints.
 
 Run: python tests/verify_endpoints.py
 """
@@ -16,7 +16,7 @@ def test_endpoints():
     assert resp.status_code == 200, f"Health check failed: {resp.text}"
     print(f"  ✓ /health: {resp.json()}")
 
-    # 2. Test /documents (should have 18 files)
+    # 2. Test /documents
     print("\n[2/5] Testing document list...")
     resp = requests.get(f"{BASE_URL}/documents")
     assert resp.status_code == 200, f"List documents failed: {resp.text}"
@@ -62,7 +62,7 @@ def test_endpoints():
             os.remove(dummy_filepath)
 
     print("\n" + "=" * 60)
-    print("✓ ALL DAY 2 API TESTS PASSED SUCCESSFULLY")
+    print("✓ ALL API TESTS PASSED")
     print("=" * 60)
 
 if __name__ == "__main__":

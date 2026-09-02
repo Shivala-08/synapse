@@ -1,5 +1,0 @@
-OISD-118: Process Safety Management — Section 3: Operating Procedures
-
-3.1 Written operating procedures are required for all process units.
-3.2 Procedures for handling deviations must be documented and approved.
-3.3 Operators are required to be trained on emergency shutdown procedures.

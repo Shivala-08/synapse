@@ -1,345 +1,202 @@
-# Synapse — Graph-Augmented Knowledge Intelligence Engine
+# Synapse — Graph-Augmented RAG Intelligence Engine
 
-A personal R&D project exploring **hybrid retrieval, knowledge-graph-augmented RAG, and adaptive model routing**. Synapse ingests heterogeneous industrial documents (regulatory guides, safety manuals, work orders, permits, incident reports) and answers questions with cited, confidence-scored responses by merging semantic vector search with a structured knowledge graph.
-
-> **Provenance:** Originally built in 36 hours for the ET AI Hackathon 2026, then rebuilt with an offline-capable embedding stack, a cleaned knowledge graph, an evaluation harness with ablation studies, and a 100+ unit-test suite. See [`CHANGELOG.md`](CHANGELOG.md) for the full history, [`EVALUATION.md`](EVALUATION.md) for retrieval metrics, and [`docs/CASE_STUDY.md`](docs/CASE_STUDY.md) for the one-page case study.
+A **hybrid retrieval, knowledge-graph-augmented RAG** system with adaptive model routing. Ingests heterogeneous documents and answers questions with cited, confidence-scored responses by merging semantic vector search with a structured knowledge graph.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 flowchart TD
-    %% Styling
-    classDef default fill:#0a0e1a,stroke:#6366f1,stroke-width:2px,color:#f1f5f9;
-    classDef storage fill:#060813,stroke:#10b981,stroke-width:2px,color:#f1f5f9;
-    classDef router fill:#111827,stroke:#f59e0b,stroke-width:2px,color:#f1f5f9;
-    classDef client fill:#0f172a,stroke:#a5b4fc,stroke-width:2px,color:#f1f5f9;
-
-    %% Ingestion Pipeline
-    subgraph Ingestion ["Ingestion Pipeline (parser.py, chunker.py)"]
-        A[Raw Corpus: PDF, CSV, DOCX, TXT] --> B[Parser: pdfplumber, docx, pandas]
-        B --> C[Token-based Chunker: 1024 Token Size]
-    end
-
-    %% Parallel Processing
-    subgraph Parallel ["Parallel Feature Extraction (ingest.py, extractor.py)"]
-        C --> D1[Embedding Generation: all-MiniLM-L6-v2]
-        C --> D2[Entity Extraction: spaCy + Regex]
-    end
-
-    %% Storage Layer
-    subgraph Storage ["Storage Layer"]
-        D1 --> E1[(Vector Store: ChromaDB)]
-        D2 --> E2[(Knowledge Graph: NetworkX)]
-    end
-
-    %% Query Engine & Adaptive Router
-    subgraph Query ["Query Engine & Adaptive Router (query_engine.py)"]
-        Q[User Query] --> SC{Semantic Cache <br/> cosine sim <1ms}
-        SC -- Cache Hit --> Ans[Immediate Response: 196ms]
-        SC -- Cache Miss --> CC[Complexity Classifier]
-        
-        CC --> R[Adaptive Router]
-        R -- Fast Path --> FP[meta/llama-3.1-8b-instruct <br/> no thinking, low latency]
-        R -- Deep Reasoning --> DP[nvidia/nemotron-3-ultra-550b-a55b <br/> 1024 budget thinking]
-        
-        %% Context Assembly
-        E1 --> CA[Hybrid Search: BM25 + Vector Fusion <br/> Cross-Encoder Re-ranking Top 3]
-        E2 --> CA
-        CA --> R
-        
-        FP --> Ans
-        DP --> Ans
-    end
-
-    %% UI Consumers
-    subgraph UI ["User Interface (app.py)"]
-        Cons[Interactive Query Console] --> Q
-        KE[Knowledge Explorer: WebGL 3D Graph] --> E2
-    end
-
-    %% Styles
-    class E1,E2 storage;
-    class SC,CC,R router;
-    class Cons,KE client;
+    A[Raw Corpus: PDF, CSV, DOCX, TXT] --> B[Parser: pdfplumber, docx, pandas]
+    B --> C[Token-based Chunker: 1024 Token Size]
+    C --> D1[Embedding Generation: all-MiniLM-L6-v2]
+    C --> D2[Entity Extraction: spaCy + Regex]
+    D1 --> E1[(Vector Store: ChromaDB)]
+    D2 --> E2[(Knowledge Graph: NetworkX)]
+    Q[User Query] --> R[Adaptive Router]
+    E1 --> CA[Hybrid Search: BM25 + Vector Fusion + CrossEncoder Reranking]
+    E2 --> CA
+    CA --> R
+    R --> LLM[LLM: NVIDIA NIM / Ollama / Smart Fallback]
+    LLM --> Ans[Response with Citations]
 ```
 
 ---
 
-## 📂 Repository Structure
-
-The project codebase is organized as follows:
+## Repository Structure
 
 ```
 ├── data/                       # Ingested and generated data
-│   ├── benchmarks/             # Ground-truth Q&A pairs for evaluation
-│   │   └── qa_pairs.json
 │   ├── corpus/                 # Source document corpus
-│   │   ├── real/               # Regulatory guides (OISD, DGMS, Factory Act, NTPC, BHEL)
-│   │   ├── synthetic/          # Generated logs (CSV work orders, permits, etc.)
+│   │   ├── real/               # Place your documents here
+│   │   ├── synthetic/          # Generated logs (CSV)
 │   │   └── uploads/            # Persistent user-uploaded files
-│   ├── chroma_db/              # ChromaDB vector store files
-│   ├── documents.json          # Metadata registry tracking ingested documents
-│   ├── knowledge_graph.json    # Serialized NetworkX knowledge graph
-│   ├── regulatory_templates.py # Seed templates for circulars
-│   └── synthetic_data_generator.py # Faker-based generator for CSV logs
+│   ├── benchmarks/             # Ground-truth Q&A pairs for evaluation
+│   ├── chroma_db/              # ChromaDB vector store (auto-generated)
+│   └── documents.json          # Metadata registry (auto-generated)
 │
 ├── src/                        # System source code
 │   ├── main.py                 # FastAPI application and endpoints
 │   ├── config.py               # Pydantic configuration & environment variables
-│   ├── app.py                  # Streamlit frontend application
-│   ├── api/                    # API Route controllers
+│   ├── App.py                  # Streamlit frontend application
 │   ├── pipeline/               # Ingestion pipeline modules
-│   │   ├── parser.py           # TXT, PDF, DOCX, and CSV Row parsers
+│   │   ├── parser.py           # TXT, PDF, DOCX, and CSV parsers
 │   │   ├── chunker.py          # Paragraph/Sentence boundary chunker
 │   │   ├── embedder.py         # Local SentenceTransformer vector embedding
 │   │   ├── extractor.py        # spaCy + Regex entity extraction
 │   │   ├── compliance.py       # Regulatory gap analysis
-│   │   └── ingest.py           # Ingestion pipeline coordinator
-│   ├── storage/                # Database wrappers
+│   │   ├── ingest.py           # Ingestion pipeline coordinator
+│   │   └── query_engine.py     # Context retrieval + answer generation
+│   ├── storage/
 │   │   └── chroma_store.py     # ChromaDB vector collection manager
-│   ├── graph/                  # Knowledge graph components
-│   │   └── knowledge_graph.py  # NetworkX knowledge graph constructor & query
-│   └── utils/                  # Shared helper scripts
+│   ├── graph/
+│   │   └── knowledge_graph.py  # NetworkX knowledge graph
+│   └── database/
+│       ├── connection.py       # SQLAlchemy session management
+│       └── models.py           # Database models
 │
-├── web/                        # Next.js frontend (Vercel) — chat, graph, docs, evaluation
-│   └── src/app/                # App Router pages (Query Console, Documents, Graph, …)
+├── web/                        # Next.js frontend (Vercel)
+│   └── src/app/                # App Router pages
 │
-├── tests/                      # Verification suites
-│   ├── test_chromadb.py        # Core vector store integration test
-│   ├── test_knowledge_graph.py # Knowledge graph construction and traversal test
-│   └── verify_endpoints.py     # FastAPI backend end-to-end endpoint verification
-│
-├── requirements.txt            # System dependencies
-└── README.md                   # Project documentation
+├── tests/                      # Test suites
+├── requirements.txt            # Python dependencies
+├── Dockerfile                  # Container build
+├── start.sh                    # Launch backend + frontend
+└── stop.sh                     # Stop servers
 ```
 
 ---
 
-## 📖 Step-by-Step User & Feature Guide
+## Quick Start
 
-This guide details how to use and navigate all of the features built into the **Synapse**.
+### Prerequisites
 
-### 💬 1. Interactive Query Console (Chat RAG)
-Use this console to submit queries regarding regulations, permits, plant conditions, or operations.
+- **Python 3.10+**
+- **Node.js 18+** (for the Next.js frontend)
+- **Optional:** NVIDIA NIM API key ([sign up free](https://build.nvidia.com/))
+- **Optional:** [Ollama](https://ollama.com/) for fully offline LLM
 
-1. **Select Model Engine (Router Control):**
-   - **Auto Classifier (Default):** The system automatically detects query complexity. Simple lookup queries (e.g. *What is tag EQ-1002?*) route to a **Fast Answer** model; complex regulatory gap analysis queries route to **Deep Reasoning**.
-   - **Fast Answer (8B):** Directly queries `meta/llama-3.1-8b-instruct` without a thinking budget (ideal for speed).
-   - **Deep Reasoning (550B):** Forces the query to execute through `nvidia/nemotron-3-ultra-550b-a55b` with a 1024-token thinking budget to output structured rationales.
-2. **Ask Questions:** Type your safety or regulatory question in the prompt box and submit.
-3. **Response Breakdown:**
-   - **Answer Box:** A streaming text response detailing safety guidelines or gap analysis.
-   - **Thinking Process Accordion:** (For Nemotron) Shows the exact, raw reasoning process the model walked through.
-   - **Sources & Citations Card:** Lists the specific document sections retrieved, including chunk indexes and similarity distances.
-   - **Confidence Score:** Renders a badge representing the retrieval similarity rating.
-4. **Rating Feedback:** Click **Rate Good (👍)** or **Rate Bad (👎)** to log feedback. Rated logs are persisted to SQLite and CSV.
+### 1. Install Dependencies
 
-### 🕸️ 2. Obsidian-Style Knowledge Network Explorer
-Click **Knowledge Explorer** in the sidebar (or go to the **Knowledge Network** tab on the homepage) to open the interactive entity graph.
-
-1. **Widescreen Canvas:** The graph rendering area utilizes WebGL to display a large, interactive 3D network topology. Click and drag to orbit, scroll to zoom, or drag nodes to modify forces.
-2. **Spacious Sidebar Controls:**
-   - **Search Entity Form:** Type a node name (e.g., `COMP-C01`) and press Search to center the graph camera directly on it.
-   - **Node Type Legend Filters:** Check or uncheck color-coded checkboxes (🔵 for Equipment, 🔴 for Regulations, 🟢 for Plants, etc.) to dynamically toggle node category visibility.
-   - **Reset View:** Resets graph filters and focuses back on the default view.
-   - **Load Complete Network:** Expands the active view to query up to 500 nodes.
-3. **Interactive Fly-To camera flight paths:** Click any node in the graph. The camera performs a smooth 1-second flight orbit to center the node, and the right-hand **Detail Panel** dynamically loads its database metadata, tags, and citations.
-4. **Path Finder:** Type a **From Entity** (e.g. `COMP-C01`) and a **To Entity** (e.g. `OISD-116`) and click **Find Path** to run Dijsktra shortest-path traversal. The visual hops are rendered instantly in green with relationship labels.
-5. **Export Graph:** Click **Export Graph (JSON)** to download the currently visible node list and edges as a JSON file.
-
-### 📂 3. Document Library & Ingestion
-Navigate to the **Documents** tab to audit files.
-
-1. **File Registry Grid:** Shows a table of all ingested documents, file types, sizes, chunk counts, and spaCy entities extracted.
-2. **User Document Uploader:** Drag and drop any `.txt`, `.csv`, `.docx`, or `.pdf` file. The server parses the file, chunks it at 1024 tokens, calculates vector embeddings, runs NER, constructs relationships, and indexes it into ChromaDB in real-time.
-
----
-
-## 🛠️ Advanced Features & Resilience
-
-The system includes several hard-won features for handling scanned documents, preventing rate-limiting crashes, and maximizing visual polish.
-
-### 1. Scanned PDF Transcription & Ingestion
-In industrial settings, many regulatory guides (such as `OISD-GDN-192.pdf`) are scanned images without a selectable text layer, causing standard PDF libraries like `pdfplumber` to extract 0 characters.
-- **Verification Module (`check_pdfs.py`):** Added a pre-check script to inspect font layer metadata across all PDFs and classify them as digital or scanned.
-- **Fallback Ingestion:** We provided a verified text transcription equivalent for `OISD-GDN-192.txt`, allowing the system to fully parse, chunk, embed, and index it.
-- **Bulk PDF Indexing:** Ingested all 5 remaining digital regulatory PDFs (`Ilomanual.pdf`, `HSE-brochure.pdf`, `Bhel-contractor-manual.pdf`, `THE-OCCUPATIONAL-SAFETY-HEALTH-AND-WORKING-CONDITIONS-CODE.pdf`, `NTPC_Safety_Rules.pdf`). 
-- **Graph Expansion:** The entity database grew from **219 nodes to 1,051 nodes & 1,256 edges**, enriching the retrieval context.
-
-### 2. Stream-Scoped Multi-Key API Key Rotation
-Using public APIs under load during hackathons frequently triggers `ResourceExhausted` rate limit exceptions.
-- **The Issue:** Traditional key rotation only catches errors during client initialization. For streaming queries, rate limits are only raised *during token iteration* (`for chunk in completion`).
-- **The Solution:** Upgraded `generate` and `stream_generate` inside `llm.py` to wrap stream iteration inside a retry block. If an active key is exhausted mid-response, the client automatically grabs the next key (out of 10 available), resumes the stream, and completes the response without displaying error boxes to users.
-
-### 3. WebGL Obsidian-Style Graph Customization
-Streamlit's default `streamlit_agraph` is slow, lacks animation, and has a plain background. We replaced it with `3d-force-graph.js` inside an iframe and customized it:
-- **Clean Solid Lines:** Removed directional particle dots, replacing them with clean, solid, semi-transparent links.
-- **D3 Layout Spacing:** Added a 150ms delay (`setTimeout`) and a `try-catch` wrapper when applying D3 forces. This prevents race conditions from causing black canvas crashes and configures a strong D3 charge repulsion (`strength(-220)`) to spread nodes out across the screen.
-- **Color-Coded Legend Checkboxes:** Side checklist labels are prepended with colored emojis (`🔵`, `🔴`, `🟢`, `🟡`, `🟣`, `🌸`, `🌐`, `🟠`) matching the WebGL node categories.
-
----
-
-## ⚡ Optimization Architecture
-
-The system underwent a three-tier optimization pass that improved accuracy from **77.8% → 100%** and reduced average latency from **10.3s → 771ms**.
-
-### Tier 1 — Correctness Fixes
-| Change | File | Impact |
-|---|---|---|
-| Graph context from chunk metadata entities | `query_engine.py` | Entities extracted from retrieved chunks, not just query text |
-| Chunk size 1024 + 200 overlap | `config.py` | Prevents split-section failures across regulatory docs |
-| Embedding similarity scoring (cosine ≥ 0.65) | `main.py` | Replaces brittle keyword overlap with semantic matching |
-| Max tokens cap 640 | `config.py` | Reduces unnecessary output generation time |
-
-### Tier 2 — Latency & Precision
-| Change | File | Impact |
-|---|---|---|
-| Query-side regex fallback | `query_engine.py` | Extracts equipment tags, OISD codes when spaCy returns 0 entities |
-| Cross-encoder re-ranker (`ms-marco-MiniLM-L-6-v2`) | `query_engine.py` | Re-ranks top-10 → top-3 chunks for precision |
-| Per-query complexity classifier | `query_engine.py` | Gates `reasoning_budget` (0 vs 1024) per query |
-| Semantic cache (500 entries, 0.95 threshold) | `query_engine.py` | Skips LLM on near-duplicate queries |
-
-### Tier 3 — Streaming & UX
-| Change | File | Impact |
-|---|---|---|
-| `stream_generate()` generator | `llm.py` | Yields tokens from NIM streaming API |
-| `/query/stream` SSE endpoint | `main.py` | Server-Sent Events with token + metadata + done events |
-| `try/finally` error recovery | `main.py` | Metadata+done events always fire, even on mid-stream errors |
-| Streamlit streaming consumer | `app.py` | Real-time token rendering via `httpx.Client.stream()` |
-| `_find_working_client()` refactor | `llm.py` | Deduplicates key-rotation logic (~40 lines removed) |
-
-### Performance Results
-
-| Metric | Before | After | Delta |
-|---|---|---|---|
-| **Accuracy** | 77.8% (14/18) | **100% (18/18)** | +22.2% |
-| **Avg Latency (steady-state)** | 10,306 ms | **771 ms** | −92.5% |
-| **Avg Latency (cold start)** | — | **4,448 ms** | — |
-| **Slowest Question** | ~46,600 ms | **1,364 ms** | −97.1% |
-| **Fastest Question** | ~5,000 ms | **566 ms** | −88.7% |
-
----
-
-## 🔧 How This Was Built
-
-Every subsystem here survived a real failure before it earned its place — a
-scanned PDF that parsed to zero characters, rate limits that struck mid-stream,
-an OOM-killed deployment, and a vector index silently rebuilt with zero
-vectors. The failures, attempts, and fixes are written up in
-[`ENGINEERING_LOG.md`](ENGINEERING_LOG.md) (Problem → Attempt → Result → Fix),
-and the quantitative case for each retained component is in
-[`EVALUATION.md`](EVALUATION.md).
-
----
-
-## 🖥️ Next.js Frontend (Vercel)
-
-The Streamlit UI in `src/App.py` remains fully supported, but the primary
-frontend moving forward is the **Next.js app in `web/`**, deployed on Vercel.
-It talks to the same FastAPI backend over HTTP + SSE.
-
-### Local development
 ```bash
-cd web
-npm install
-# point the frontend at your backend
-NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
-# open http://localhost:3000 (backend must be running on :8000)
-```
-
-### Deploy to Vercel
-1. Push the repo to GitHub (`vercel.json` at the root already sets the
-   build directory to `web/`).
-2. Import the repo in Vercel — framework preset **Next.js**, root directory
-   `web/` (auto-detected from `vercel.json`).
-3. Add the environment variable at build time:
-   `NEXT_PUBLIC_API_URL=https://<your-render-backend-url>` (no trailing slash).
-4. Deploy. The frontend is static + client-side JS; the Python backend
-   (FastAPI + ChromaDB) stays on a persistent host (Render) and must have
-   CORS enabled — `src/main.py` already allows all origins.
-
-> **Live:** [synapse-ebon-three.vercel.app](https://synapse-ebon-three.vercel.app/) (Next.js on Vercel) →
-> [economic-times-hackathon.onrender.com](https://economic-times-hackathon.onrender.com) (FastAPI on Render).
-
-### What's in the frontend
-- **Query Console** — SSE streaming chat with evidence trace (pipeline step
-  row, retrieval stats, citations), router control, example questions.
-- **Documents** — library with type filter, search, chunk inspector.
-- **Knowledge Network** — interactive force-directed graph, node details,
-  path finder.
-- **Entity Explorer** — browse entities by type with relationships.
-- **Evaluation** — runs the 40-question benchmark with category breakdown.
-- **Settings** — corpus initialization, uploads, raw vector debug search.
-
----
-
-## 🚀 Quick Start
-
-> **Cost note:** Synapse uses the NVIDIA NIM free tier with a local Ollama fallback and an offline-capable local embedder — no paid API key is required to run it.
-
-### 1. Set Up Environment
-Ensure you have Python 3.10+ installed:
-```bash
-# Clone the repository
-git clone https://github.com/Shivala-08/synapse.git
+git clone <your-repo-url>
 cd synapse
-
-# Initialize virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
-
-# Install dependencies
 pip install -r requirements.txt
+python -m spacy download en_core_web_sm
 ```
 
-### 2. Launch the Platform (Fast Startup)
-Use our pre-bundled startup script to clean up ports and launch both the backend and frontend in the background:
+### 2. Configure Environment
+
+```bash
+cp .env.example .env
+# Edit .env — add NVIDIA_API_KEY_1 or install Ollama for LLM answers
+# Without either, Synapse uses "Smart Context" fallback (formats raw chunks)
+```
+
+### 3. Launch
+
 ```bash
 ./start.sh
 ```
-This script will:
-1. Kill any stale processes on ports `8000` (FastAPI) and `8501` (Streamlit).
-2. Launch FastAPI backend in the background (logs: `backend.log`).
-3. Launch Streamlit frontend in the background (logs: `frontend.log`).
 
-Open **`http://localhost:8501`** in your browser. (The backend takes ~9 seconds to load and pre-warm models on the first request).
+- **Backend:** http://localhost:8000
+- **Frontend:** http://localhost:3000
 
-To stop the servers, run:
+### 4. Initialize the Corpus
+
+Click **"Scan & Index Default Corpus"** in the UI, or:
+
 ```bash
-./stop.sh
+curl -X POST http://localhost:8000/ingest/initialize
+```
+
+### 5. Query
+
+```bash
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What are the safety requirements for PUMP-A01?"}'
 ```
 
 ---
 
-## 🧪 Running the Benchmark & Tests
+## API Reference
 
-### Running the Q&A Benchmark
+All endpoints documented at http://localhost:8000/docs (Swagger UI).
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Health check |
+| `/llm/status` | GET | LLM availability |
+| `/query` | POST | Non-streaming RAG query |
+| `/query/stream` | POST | SSE streaming RAG query |
+| `/ingest/initialize` | POST | Clear and re-ingest corpus (Admin) |
+| `/ingest/upload` | POST | Upload and ingest files (Admin) |
+| `/documents` | GET | List ingested documents |
+| `/graph` | GET | Knowledge graph JSON |
+| `/graph/top` | GET | Top N most-connected nodes |
+| `/graph/path` | GET | Shortest path between entities |
+| `/entities` | GET | All entities grouped by type |
+| `/compliance/check` | POST | Regulatory gap analysis |
+| `/debug/search` | GET | Raw vector search (Admin) |
+| `/benchmark/run` | GET | Run accuracy benchmark (Admin) |
+| `/feedback` | POST | Log thumbs up/down feedback |
+
+---
+
+## Configuration
+
+All settings in `src/config.py`, loaded from `.env`:
+
+| Setting | Default | Description |
+|---|---|---|
+| `ADMIN_API_KEY` | `""` | API key for protected endpoints |
+| `REQUIRE_ADMIN_KEY` | `false` | Abort startup without admin key |
+| `CORS_ORIGINS` | `""` (allow all) | Comma-separated allowed origins |
+| `NVIDIA_API_KEY_1`..`10` | `""` | NVIDIA NIM API keys (tried in order) |
+| `HF_TOKEN` | `""` | Hugging Face token for embedding API |
+| `chunk_size` | `1024` | Tokens per chunk |
+| `chunk_overlap` | `200` | Overlap between chunks |
+| `top_k` | `50` | Default chunks retrieved |
+| `use_reranker` | `true` | Cross-encoder re-ranking |
+| `use_hybrid` | `true` | BM25 + vector fusion |
+| `use_graph` | `true` | Knowledge graph traversal |
+| `use_semantic_cache` | `true` | Semantic similarity cache |
+
+---
+
+## Docker
+
 ```bash
-# Run the full ground-truth benchmark evaluation directly
-PYTHONPATH=. python3 run_benchmark_now.py
+docker build -t synapse .
+docker run -p 8000:8000 -e NVIDIA_API_KEY_1=nvapi-xxx synapse
 ```
-This script loads models in-process and reports per-question accuracy, latency, similarity, Recall@5, MRR, and category breakdown. Logs are saved to `data/benchmarks/retrieval_log.json`.
 
-```bash
-# Run the 5-configuration ablation study (vector-only → full pipeline)
-PYTHONPATH=. python3 run_ablation.py
-```
-Results are saved to `data/benchmarks/ablation_results.json`. See [**EVALUATION.md**](EVALUATION.md) for the ablation table, metric definitions, and what each component actually contributes.
+## Vercel (Frontend)
 
-### Running Unit Tests
-```bash
-# Run the offline pytest unit suites (knowledge graph, extractor, chunker, llm, query engine)
-PYTHONPATH=. python -m pytest tests/test_knowledge_graph.py tests/test_extractor.py tests/test_chunker.py tests/test_llm.py tests/test_query_engine.py -q
-```
-These suites are offline (no API keys, model downloads, or live servers required).
+1. Push to GitHub
+2. Import in Vercel — framework: Next.js, root: `web/`
+3. Set `NEXT_PUBLIC_API_URL=https://your-backend.onrender.com`
+4. Deploy
 
-### Running Verification Tests (script-style, need live services)
-```bash
-# Verify ChromaDB vector store (requires Hugging Face Inference API access)
-PYTHONPATH=. python tests/test_chromadb.py
+---
 
-# Verify FastAPI endpoint integrations (requires backend running on port 8000)
-PYTHONPATH=. python tests/verify_endpoints.py
-```
+## LLM Routing
+
+Synapse uses an adaptive router that selects the right model based on query complexity:
+
+| Mode | Model | Use Case | Latency |
+|---|---|---|---|
+| **Fast** | Llama 3.1 8B | Simple lookups, record queries | ~500ms |
+| **Deep** | Nemotron 550B | Complex synthesis, comparisons | ~2-5s |
+| **Auto** | Classifier decides | Default — best of both | Varies |
+| **Fallback** | Smart Context | No LLM available | ~100ms |
+
+---
+
+## License
+
+MIT

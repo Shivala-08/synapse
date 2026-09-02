@@ -1,12 +1,21 @@
-"""Entity extraction for industrial documents using regex.
+"""Entity extraction using regex and spaCy.
 
-Extracts equipment tags, permit numbers, regulation references,
-plants, and incident types from text content.
+Extracts domain-specific entities from text. Supports wikilink parsing
+for Obsidian-style [[Note Name]] syntax when the domain profile requests it.
 """
 
 import re
 from typing import Optional
 from loguru import logger
+
+
+# --- Wikilink pattern (Obsidian-style [[Note Name]] syntax) ---
+WIKILINK_PATTERN = re.compile(r"\[\[([^\]|#]+)(?:\|[^\]]+)?\]\]")
+
+
+def extract_wikilinks(text: str) -> list[str]:
+    """Return note names from [[Note Name]] or [[Note Name|alias]] syntax."""
+    return [m.strip() for m in WIKILINK_PATTERN.findall(text)]
 
 
 # --- Regex patterns for domain-specific entities ---
@@ -174,12 +183,11 @@ class EntityExtractor:
         except Exception as e:
             logger.warning(f"spaCy not available or failed to load: {e}. Falling back to pure regex.")
 
-    def extract_all(self, text: str, metadata: Optional[dict] = None) -> dict:
+    def extract_all(self, text: str, metadata: Optional[dict] = None, domain_profile=None) -> dict:
         """Extract all entity types from text.
 
-        Uses spaCy (when available) for general entity types like Personnel (PERSON)
-        and custom regular expressions for domain-specific industrial entities.
-        If spaCy fails or returns 0 entities, the system falls back to regex-based extraction.
+        When domain_profile is given and link_syntax == "wikilink", also
+        extracts [[Note Name]] references and adds them as wikilink entities.
         """
         metadata = metadata or {}
         spacy_entities = []
@@ -215,6 +223,14 @@ class EntityExtractor:
         if not spacy_entities:
             logger.debug("spaCy returned 0 entities. Relying on query-side regex fallback.")
             entities["personnel"] = sorted(set(self._extract_personnel(text)))
+
+        # 3. Wikilink extraction (gated on domain profile)
+        entities["wikilinks"] = []
+        if domain_profile and getattr(domain_profile, "link_syntax", "none") == "wikilink":
+            links = extract_wikilinks(text)
+            entities["wikilinks"] = sorted(set(links))
+            if links:
+                logger.debug(f"Extracted {len(entities['wikilinks'])} wikilinks from text")
 
         # Count total
         total = sum(len(v) for v in entities.values())
@@ -346,6 +362,6 @@ def get_extractor() -> EntityExtractor:
     return _default_extractor
 
 
-def extract_entities(text: str, metadata: Optional[dict] = None) -> dict:
+def extract_entities(text: str, metadata: Optional[dict] = None, domain_profile=None) -> dict:
     """Convenience function to extract entities from text."""
-    return get_extractor().extract_all(text, metadata)
+    return get_extractor().extract_all(text, metadata, domain_profile=domain_profile)

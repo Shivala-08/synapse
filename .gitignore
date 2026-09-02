@@ -6,16 +6,29 @@ __pycache__/
 dist/
 build/
 .venv/
-data/temp_uploads/
 .DS_Store
-demo_screenshots/
+
+# Generated/derived data — never commit databases, caches, or vector indexes
+data/*.db
+data/*.db-journal
+data/semantic_cache.json
+data/knowledge_graph.json
+data/documents.json
+data/chroma_db/
+data/corpus/uploads/
 data/benchmarks/retrieval_log.json
 
-static/js/
+# Logs
 *.log
+backend.log
+frontend.log
+
+# Static JS (downloaded at build time)
+static/js/
+
+# Node / Next.js
 node_modules/
 web/.next/
 web/out/
-package.json
-package-lock.json
+web/tsconfig.tsbuildinfo
 .vercel

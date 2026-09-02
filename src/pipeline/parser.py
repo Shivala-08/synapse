@@ -1,6 +1,9 @@
 """Document parsing module for industrial datasets (TXT, PDF, DOCX, CSV)."""
 
 from pathlib import Path
+import re
+from typing import Optional
+
 import pandas as pd
 import pdfplumber
 import docx
@@ -62,6 +65,24 @@ def parse_docx(file_path: Path) -> str:
         raise e
 
 
+def _find_id_column(columns) -> Optional[str]:
+    """Pick the identifier column without false positives.
+
+    A naive `"id" in col.lower()` matches 'priority' (pr-id-ority), 'width',
+    etc., mislabelling every record and colliding chunk IDs.
+    """
+    # 1. Unambiguous: exactly 'id' or suffixed '_id'
+    for col in columns:
+        c = col.lower()
+        if c == "id" or c.endswith("_id"):
+            return col
+    # 2. Word-boundary 'id' segment (foo_id_bar), still skips 'priority'
+    for col in columns:
+        if re.search(r"(?:^|_)id(?:_|$)", col.lower()):
+            return col
+    return None
+
+
 def parse_csv(file_path: Path) -> list[dict]:
     """Parse CSV files row-by-row into self-describing text records.
 
@@ -83,13 +104,10 @@ def parse_csv(file_path: Path) -> list[dict]:
         df = df.fillna("")
         
         # Identify key identifier column (e.g. work_order_id, permit_id, etc.)
-        id_col = None
-        for col in df.columns:
-            if "id" in col.lower():
-                id_col = col
-                break
+        id_col = _find_id_column(df.columns)
 
         records = []
+        seen_row_ids = set()
         record_type = file_path.stem.replace("_", " ").title() # e.g. "Work Orders"
         
         for idx, row in df.iterrows():
@@ -119,6 +137,12 @@ def parse_csv(file_path: Path) -> list[dict]:
                 if col in row and str(row[col]).strip():
                     metadata[col] = str(row[col]).strip()
             
+            # Guard against duplicate row IDs colliding on chunk IDs —
+            # ChromaDB raises on duplicate add IDs.
+            if row_id in seen_row_ids:
+                row_id = f"{row_id}_dup{len(seen_row_ids)}"
+            seen_row_ids.add(row_id)
+
             records.append({
                 "id": f"{file_path.stem}_{row_id}",
                 "text": row_text,

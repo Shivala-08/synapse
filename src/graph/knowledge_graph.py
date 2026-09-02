@@ -1,6 +1,7 @@
-"""Knowledge graph builder using NetworkX for industrial entities.
+"""Knowledge graph builder using NetworkX.
 
-Backed by relational database tables in PostgreSQL/SQLite for V2 persistence and concurrency safety.
+Backed by relational database tables in PostgreSQL/SQLite for persistence.
+Supports domain-namespaced graphs via DomainProfile.
 """
 
 import json
@@ -9,7 +10,7 @@ from typing import Optional
 from loguru import logger
 import networkx as nx
 
-from src.config import settings
+from src.config import settings, DomainProfile
 from src.database.connection import get_db_session
 from src.database.models import GraphNode as DbNode, GraphEdge as DbEdge
 
@@ -26,23 +27,39 @@ NODE_COLORS = {
     "hazard": "#dc2626",         # dark red
     "permit_type": "#d97706",    # dark amber
     "incident_type": "#db2777",  # dark pink
+    "note": "#a78bfa",           # lavender (wikilink targets)
 }
 
 
 class IndustrialKnowledgeGraph:
-    """NetworkX-based knowledge graph backed by PostgreSQL/SQLite database tables."""
+    """NetworkX-based knowledge graph backed by database tables.
 
-    def __init__(self, load_from_disk: bool = True):
+    When a DomainProfile is provided, all reads and writes are scoped to
+    that domain via a domain_id column. When no profile is given, the graph
+    operates on all data (backward-compatible default).
+    """
+
+    def __init__(self, domain_profile: Optional[DomainProfile] = None, load_from_disk: bool = True):
+        self.domain_id: Optional[str] = domain_profile.domain_id if domain_profile else None
+        self.graph_file: Optional[str] = domain_profile.graph_file if domain_profile else None
         self.graph = nx.Graph()
-        self._sync_from_db()
+        if load_from_disk:
+            self._sync_from_db()
 
     def _sync_from_db(self):
-        """Load node and edge records from database to build the in-memory NetworkX index."""
+        """Load node and edge records from database into the in-memory NetworkX index.
+
+        If domain_id is set, only load records tagged with that domain.
+        """
         try:
             self.graph.clear()
             with get_db_session() as db:
-                nodes = db.query(DbNode).all()
-                edges = db.query(DbEdge).all()
+                if self.domain_id:
+                    nodes = db.query(DbNode).filter(DbNode.domain_id == self.domain_id).all()
+                    edges = db.query(DbEdge).filter(DbEdge.domain_id == self.domain_id).all()
+                else:
+                    nodes = db.query(DbNode).all()
+                    edges = db.query(DbEdge).all()
 
                 for node in nodes:
                     attrs = node.attributes
@@ -57,8 +74,8 @@ class IndustrialKnowledgeGraph:
                     self.graph.add_edge(edge.source_id, edge.target_id, **attrs)
 
             logger.info(
-                f"Knowledge Graph synced from DB: {self.graph.number_of_nodes()} nodes, "
-                f"{self.graph.number_of_edges()} edges"
+                f"Knowledge Graph synced from DB (domain={self.domain_id}): "
+                f"{self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges"
             )
         except Exception as e:
             logger.error(f"Failed to sync Knowledge Graph from DB: {e}")
@@ -95,7 +112,8 @@ class IndustrialKnowledgeGraph:
                     db_node = DbNode(
                         node_id=entity_id,
                         node_type=entity_type,
-                        doc_id=doc_id
+                        doc_id=doc_id,
+                        domain_id=self.domain_id,
                     )
                     db_node.attributes = attrs
                     db.add(db_node)
@@ -103,6 +121,8 @@ class IndustrialKnowledgeGraph:
                     db_node.node_type = entity_type
                     if doc_id:
                         db_node.doc_id = doc_id
+                    if self.domain_id:
+                        db_node.domain_id = self.domain_id
                     curr_attrs = db_node.attributes
                     curr_attrs.update(attrs)
                     db_node.attributes = curr_attrs
@@ -141,7 +161,8 @@ class IndustrialKnowledgeGraph:
                     db_edge = DbEdge(
                         source_id=source,
                         target_id=target,
-                        relation=relation
+                        relation=relation,
+                        domain_id=self.domain_id,
                     )
                     db_edge.attributes = attrs
                     db.add(db_edge)
@@ -262,6 +283,28 @@ class IndustrialKnowledgeGraph:
                 added_edges += 1
 
         logger.info(f"Added {added_nodes} nodes, {added_edges} edges from document {doc_id}")
+
+    def add_wikilink_entities(self, source_note: str, target_notes: list[str], doc_id: str = ""):
+        """Add wikilink nodes and LINKS_TO edges to the graph.
+
+        Called when link_syntax == "wikilink". Each target note becomes a node
+        (type: Note) with a LINKS_TO edge from the source note.
+        """
+        if not target_notes:
+            return
+
+        # Add the source note as a node
+        self.add_entity(source_note, "note", doc_id=doc_id)
+
+        for target in target_notes:
+            # Add the target note as a node
+            self.add_entity(target, "note", doc_id=doc_id)
+            # Add the LINKS_TO edge
+            self.add_relationship(source_note, target, "LINKS_TO")
+
+        logger.debug(
+            f"Wikilinks: {source_note} -> {len(target_notes)} targets"
+        )
 
     def get_entity_neighbors(self, entity_id: str, depth: int = 1) -> dict:
         """Get neighbors of an entity up to a given depth."""
@@ -492,24 +535,34 @@ class IndustrialKnowledgeGraph:
         }
 
     def clear(self):
-        """Clear the entire graph from DB and memory index."""
+        """Clear graph from DB and memory index.
+
+        If domain_id is set, only clear records for that domain.
+        """
         try:
             self.graph.clear()
             with get_db_session() as db:
-                db.query(DbEdge).delete()
-                db.query(DbNode).delete()
-            logger.warning("Knowledge Graph cleared from DB and memory.")
+                if self.domain_id:
+                    db.query(DbEdge).filter(DbEdge.domain_id == self.domain_id).delete()
+                    db.query(DbNode).filter(DbNode.domain_id == self.domain_id).delete()
+                else:
+                    db.query(DbEdge).delete()
+                    db.query(DbNode).delete()
+            logger.warning(f"Knowledge Graph cleared (domain={self.domain_id}).")
         except Exception as e:
             logger.error(f"Failed to clear graph in DB: {e}")
 
 
-# Module-level singleton
-_kg = None
+# Module-level singletons, keyed by domain_id
+_kg_singletons: dict[str, IndustrialKnowledgeGraph] = {}
 
 
-def get_knowledge_graph() -> IndustrialKnowledgeGraph:
-    """Get or create the singleton knowledge graph."""
-    global _kg
-    if _kg is None:
-        _kg = IndustrialKnowledgeGraph()
-    return _kg
+def get_knowledge_graph(domain_profile: Optional[DomainProfile] = None) -> IndustrialKnowledgeGraph:
+    """Get or create a domain-scoped knowledge graph singleton.
+
+    When no profile is given, returns the legacy global graph (no domain filter).
+    """
+    key = domain_profile.domain_id if domain_profile else "__global__"
+    if key not in _kg_singletons:
+        _kg_singletons[key] = IndustrialKnowledgeGraph(domain_profile=domain_profile)
+    return _kg_singletons[key]

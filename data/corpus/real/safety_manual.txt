@@ -1,5 +1,0 @@
-Safety Manual Section 3: Equipment Inspection Requirements.
-All equipment tagged EQ-1001 through EQ-4002 must undergo quarterly inspections.
-Pressure vessels TNK-T01, TNK-T02, TNK-T03 require annual internal inspection.
-Pumps PUMP-A01 and PUMP-A02 must be checked monthly for vibration levels.
-Compressors COMP-C01 requires weekly safety checks per OISD-116.

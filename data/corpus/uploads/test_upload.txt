@@ -1,2 +1,0 @@
-This is a dummy safety manual section for upload testing.
-Valve VAL-V03 must be inspected every 3 months.

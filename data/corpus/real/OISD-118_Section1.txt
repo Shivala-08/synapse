@@ -1,5 +1,0 @@
-OISD-118: Process Safety Management — Section 1: Process Safety Information
-
-1.1 Complete technical specifications must be documented for all process equipment.
-1.2 Equipment tags ranging from EQ-1001 to EQ-4002 must be registered in the Process Safety Information database.
-1.3 Chemical inventory and hazard data must be maintained for all process units.

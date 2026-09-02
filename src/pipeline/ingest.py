@@ -1,6 +1,6 @@
 """Ingestion pipeline to parse, chunk, embed, and store documents in ChromaDB.
 
-Also performs entity extraction and knowledge graph construction.
+Supports domain-namespaced ingestion via DomainProfile.
 """
 
 import os
@@ -8,9 +8,10 @@ import json
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 from loguru import logger
 
-from src.config import settings
+from src.config import settings, DomainProfile
 from src.pipeline.parser import parse_file
 from src.pipeline.chunker import chunk_text
 from src.pipeline.embedder import TextEmbedder
@@ -20,13 +21,23 @@ from src.graph.knowledge_graph import get_knowledge_graph
 
 
 class IngestionPipeline:
-    """Orchestrates parsing, chunking, embedding, entity extraction, and storing files."""
+    """Orchestrates parsing, chunking, embedding, entity extraction, and storing files.
 
-    def __init__(self):
+    When a DomainProfile is provided, the pipeline writes to the domain's
+    collection and graph. Without a profile, it uses the default (backward-
+    compatible) collection.
+    """
+
+    def __init__(self, domain_profile: Optional[DomainProfile] = None):
+        self.domain_profile = domain_profile
         self.embedder = TextEmbedder()
-        self.store = VectorStore()
-        self.kg = get_knowledge_graph()
-        self.registry_path = settings.data_dir / "documents.json"
+        self.store = VectorStore(domain_profile=domain_profile)
+        self.kg = get_knowledge_graph(domain_profile)
+        # Domain-scoped registry so each domain tracks its own documents
+        if domain_profile:
+            self.registry_path = settings.data_dir / f"documents_{domain_profile.domain_id}.json"
+        else:
+            self.registry_path = settings.data_dir / "documents.json"
         self.uploads_dir = settings.corpus_dir / "uploads"
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
 
@@ -73,14 +84,16 @@ class IngestionPipeline:
         # 1. Parse the file
         parsed_records = parse_file(file_path)
 
-        # 2. Chunking
+        # 2. Chunking (use domain-specific sizes when available)
         chunks = []
+        chunk_size = self.domain_profile.chunk_size if self.domain_profile else None
+        chunk_overlap = self.domain_profile.chunk_overlap if self.domain_profile else None
         if suffix == ".csv":
             # For CSV, each row returned from parse_file is already a chunk
             chunks = parsed_records
         else:
             full_text = parsed_records[0]["text"]
-            raw_chunks = chunk_text(full_text, doc_id=doc_id)
+            raw_chunks = chunk_text(full_text, doc_id=doc_id, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
             for rc in raw_chunks:
                 rc["metadata"]["record_type"] = suffix.lstrip(".")
                 chunks.append({
@@ -107,7 +120,7 @@ class IngestionPipeline:
                     row_metadata = c["metadata"]
                     row_doc_id = c["id"]
                     
-                    row_entities = extract_entities(row_text, row_metadata)
+                    row_entities = extract_entities(row_text, row_metadata, domain_profile=self.domain_profile)
                     row_entity_count = sum(len(v) for v in row_entities.values())
                     entity_count += row_entity_count
                     
@@ -118,6 +131,9 @@ class IngestionPipeline:
                     c["metadata"]["entity_ids"] = json.dumps(all_entity_ids)
                     
                     self.kg.add_document_entities(row_doc_id, row_text, row_entities, row_metadata)
+                    # Wikilink edges (Second Brain only)
+                    if row_entities.get("wikilinks"):
+                        self.kg.add_wikilink_entities(row_doc_id, row_entities["wikilinks"], doc_id=row_doc_id)
                 logger.info(f"Extracted and graph-linked {entity_count} entities from CSV {filename} row-by-row")
             else:
                 # For text files, extract entities per-chunk and store in metadata
@@ -126,7 +142,7 @@ class IngestionPipeline:
                                "work_orders": [], "incidents": [], "inspections": [], "personnel": [],
                                "hazards": [], "incident_types": [], "permit_types": []}
                 for c in chunks:
-                    chunk_entities = extract_entities(c["text"])
+                    chunk_entities = extract_entities(c["text"], domain_profile=self.domain_profile)
                     chunk_entity_count = sum(len(v) for v in chunk_entities.values())
                     entity_count += chunk_entity_count
                     
@@ -140,6 +156,12 @@ class IngestionPipeline:
                 logger.info(f"Extracted {entity_count} entities from {filename} ({len(chunks)} chunks)")
                 # Add to knowledge graph using combined entities
                 self.kg.add_document_entities(doc_id, "\n".join(texts_to_embed), all_entities, {})
+                # Wikilink edges (Second Brain only)
+                if self.domain_profile and getattr(self.domain_profile, "link_syntax", "none") == "wikilink":
+                    from src.pipeline.extractor import extract_wikilinks
+                    full_wikilinks = extract_wikilinks("\n".join(texts_to_embed))
+                    if full_wikilinks:
+                        self.kg.add_wikilink_entities(doc_id, sorted(set(full_wikilinks)), doc_id=doc_id)
         except Exception as e:
             logger.error(f"Entity extraction failed for {filename}: {e}")
             entity_count = 0

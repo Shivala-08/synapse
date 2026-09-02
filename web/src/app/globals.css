@@ -13,6 +13,12 @@
   --ok: #34C77B;
   --radius: 3px;
   --radius-lg: 4px;
+
+  /* ── Motion tokens ── */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);      /* entrances */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);  /* on-screen moves */
+  --dur-fast: 150ms;
+  --dur-ui: 220ms;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -102,7 +108,7 @@ code {
   font-weight: 500;
   font-size: 0.88rem;
   border-left: 2px solid transparent;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) ease, background-color var(--dur-fast) ease, border-left-color var(--dur-fast) ease;
 }
 .nav-link:hover { color: var(--text); background: rgba(255, 166, 48, 0.06); text-decoration: none; }
 .nav-link.active { color: var(--signal-amber); border-left-color: var(--signal-amber); background: rgba(255, 166, 48, 0.07); }
@@ -176,7 +182,7 @@ code {
   margin-bottom: 1rem;
 }
 
-.doc-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-left: 2px solid var(--hairline); transition: border-color 0.15s ease; }
+.doc-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-left: 2px solid var(--hairline); transition: border-color var(--dur-fast) ease; }
 .doc-card:hover { border-left-color: var(--signal-amber); }
 .doc-card h3 { margin: 0 0 0.2rem; font-size: 0.98rem; font-family: var(--font-body); font-weight: 600; }
 .doc-card .doc-meta { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); display: flex; gap: 0.9rem; flex-wrap: wrap; }
@@ -242,7 +248,7 @@ code {
   font-size: 0.72rem;
   padding: 0.5rem 0.9rem;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) ease, background-color var(--dur-fast) ease;
 }
 .segmented button:last-child { border-right: none; }
 .segmented button:hover { color: var(--text); background: rgba(255,166,48,0.05); }
@@ -259,7 +265,7 @@ code {
   font-size: 0.72rem;
   padding: 0.42rem 0.8rem;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease, background-color var(--dur-fast) ease;
 }
 .chip:hover { color: var(--text); border-color: rgba(255,166,48,0.5); }
 .chip.amber { color: var(--signal-amber); border-color: rgba(255,166,48,0.5); background: rgba(255,166,48,0.08); }
@@ -283,7 +289,7 @@ code {
   color: var(--text-dim);
   background: var(--bg);
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: color var(--dur-ui) var(--ease-out), border-color var(--dur-ui) var(--ease-out), background-color var(--dur-ui) var(--ease-out), box-shadow var(--dur-ui) var(--ease-out);
   position: relative;
 }
 .pstage.active { color: var(--signal-amber); border-color: var(--signal-amber); background: rgba(255,166,48,0.08); box-shadow: 0 0 12px rgba(255,166,48,0.15); }
@@ -385,7 +391,7 @@ code {
   font-family: var(--font-body);
   padding: 0.55rem 1.15rem;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: filter var(--dur-fast) ease, opacity var(--dur-fast) ease;
 }
 .btn:hover { filter: brightness(1.08); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -452,6 +458,87 @@ code {
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 .mono { font-family: var(--font-mono); }
+
+/* ══ Motion ══════════════════════════════════════════════════════════════
+   Entrances are opacity + small translate only, via @starting-style so new
+   DOM nodes animate without any JS state. Stagger is reserved for the
+   once-per-query metadata reveal. Everything respects prefers-reduced-motion
+   (see block at end of file). */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Chat messages: gentle settle when appended to the transcript. */
+.chat-user,
+.chat-assistant {
+  @starting-style {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  transition: opacity var(--dur-ui) var(--ease-out), transform var(--dur-ui) var(--ease-out);
+}
+
+/* Live pipeline panel mounts when streaming starts. */
+.pipeline {
+  @starting-style {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Metadata arrival: confidence/model/latency badges land in sequence. */
+.chat-meta > * {
+  animation: riseIn var(--dur-ui) var(--ease-out) both;
+}
+.chat-meta > *:nth-child(2) { animation-delay: 50ms; }
+.chat-meta > *:nth-child(3) { animation-delay: 100ms; }
+
+/* Key points + entity tags: quick cascade, capped so long lists don't crawl. */
+.chat-assistant ul > li { animation: fadeIn var(--dur-ui) var(--ease-out) both; }
+.chat-assistant ul > li:nth-child(2) { animation-delay: 40ms; }
+.chat-assistant ul > li:nth-child(3) { animation-delay: 80ms; }
+.chat-assistant ul > li:nth-child(n+4) { animation-delay: 120ms; }
+.chat-assistant .tag { animation: riseIn var(--dur-ui) var(--ease-out) both; }
+
+/* Evidence trace + citations appear once metadata settles. */
+.expander { animation: riseIn var(--dur-ui) var(--ease-out) both; }
+.citation { animation: fadeIn var(--dur-ui) var(--ease-out) both; }
+.citation:nth-child(2) { animation-delay: 40ms; }
+.citation:nth-child(n+3) { animation-delay: 80ms; }
+
+/* Expander content on manual toggle — light fade only (details has no
+   transform-friendly open transition without JS; not worth it here). */
+.expander[open] .expander-body { animation: fadeIn 180ms ease-out; }
+
+/* Hero: single restrained load-in, marketing-tier duration is acceptable. */
+.hero > * { animation: riseIn 350ms var(--ease-out) both; }
+.hero > *:nth-child(2) { animation-delay: 60ms; }
+.hero > *:nth-child(3) { animation-delay: 120ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* Decorative loops stop entirely. */
+  .trace-line::after { animation: none; width: 100%; background: rgba(255,166,48,0.35); }
+  .skeleton { animation: none; }
+  .status-badge .led { animation: none !important; }
+
+  /* Entrances keep the opacity crossfade, drop the movement. */
+  .chat-user, .chat-assistant, .pipeline,
+  .chat-meta > *, .chat-assistant ul > li, .chat-assistant .tag,
+  .expander, .citation, .hero > * {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+  .chat-user, .chat-assistant {
+    transform: none;
+    transition: opacity 1ms ease; /* instant appear, no translate */
+  }
+}
+}
 
 /* legacy alias — some pages reference --text-secondary / --border-strong */
 :root { --text-secondary: var(--text-muted); --border-strong: var(--hairline); --success-text: var(--ok); --warning-text: var(--signal-amber); --danger-text: var(--alert-red); }

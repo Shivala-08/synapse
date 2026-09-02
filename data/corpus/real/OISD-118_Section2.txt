@@ -1,5 +1,0 @@
-OISD-118: Process Safety Management — Section 2: Process Hazard Analysis
-
-2.1 HAZOP studies are required for all new installations and modifications to existing units.
-2.2 HAZOP studies must be revalidated every 5 years.
-2.3 All action items resulting from PHA studies must be tracked until completion.

@@ -19,16 +19,15 @@ from src.config import settings
 # ── Prompts ────────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = (
-    "You are Synapse, an AI-powered knowledge intelligence assistant for oil & gas / manufacturing plants. "
-    "You answer safety and compliance questions using ONLY retrieved document context. "
+    "You are Synapse, a knowledge intelligence assistant. "
+    "You answer questions using ONLY retrieved document context. "
     "Never fabricate facts. Always cite sources using [Source N] labels. "
     "Keep your answer concise and direct (strictly 1-3 sentences). "
-    "Answer ONLY what is asked; do not list unrelated details or auxiliary facts from the document. "
-    "Be precise, professional, and safety-conscious. "
+    "Answer ONLY what is asked; do not list unrelated details. "
     "Respond ONLY with valid JSON — no markdown fences, no extra text."
 )
 
-RAG_PROMPT = """Retrieved context from industrial safety documents:
+RAG_PROMPT = """Retrieved context:
 
 === DOCUMENT CONTEXT ===
 {context}
@@ -44,7 +43,7 @@ Answer using ONLY the context above. Return ONLY this JSON object (pure JSON, no
   "answer": "<concise, direct 1-3 sentence answer citing [Source N] labels>",
   "confidence": "<High|Medium|Low>",
   "key_points": ["<key point 1>", "<key point 2>", "<key point 3>"],
-  "entities_mentioned": ["<entity IDs or regulation refs found in context>"]
+  "entities_mentioned": ["<entity IDs found in context>"]
 }}
 
 Confidence rules:
@@ -120,8 +119,10 @@ class NvidiaLLM:
 
     def _find_working_client(self, target_model: str, prompt: str,
                              max_tokens: int, enable_thinking: bool,
-                             reasoning_budget: int, timeout: float = 15.0,
+                             reasoning_budget: int, timeout: float = None,
                              start_key_idx: int = 0):
+        if timeout is None:
+            timeout = settings.nvidia_timeout_generate
         """Try each API key starting from start_key_idx until one succeeds; yield (idx, completion).
 
         Yields a single tuple on the first successful API call, then returns.
@@ -153,7 +154,7 @@ class NvidiaLLM:
                     max_tokens=max_tokens,
                     extra_body=extra_body if extra_body else None,
                     stream=True,
-                    timeout=timeout,
+                    timeout=(settings.nvidia_timeout_connect, timeout),
                 )
                 yield idx, completion
                 return
@@ -177,7 +178,12 @@ class NvidiaLLM:
         )
 
     def generate(self, prompt: str, max_tokens: int = 640, enable_thinking: bool = True, reasoning_budget: int = 1024, model: Optional[str] = None) -> str:
-        """Try each API key in order, accumulate tokens, return full answer."""
+        """Try each API key in order, accumulate tokens, return full answer.
+
+        The read timeout defaults to nvidia_timeout_generate (120s): the deep
+        model can take 40s+ to first token, so anything below that guarantees
+        every non-streaming deep query fails into the smart fallback.
+        """
         target_model = model or self.model
         start_key_idx = 0
         last_error = None
@@ -186,7 +192,7 @@ class NvidiaLLM:
             try:
                 for idx, completion in self._find_working_client(
                     target_model, prompt, max_tokens, enable_thinking, reasoning_budget,
-                    timeout=15.0, start_key_idx=start_key_idx
+                    timeout=settings.nvidia_timeout_generate, start_key_idx=start_key_idx
                 ):
                     start_key_idx = idx - 1
                     answer_parts = []
@@ -210,16 +216,23 @@ class NvidiaLLM:
     def stream_generate(self, prompt: str, max_tokens: int = 640,
                         enable_thinking: bool = True, reasoning_budget: int = 1024,
                         model: Optional[str] = None) -> Generator[str, None, None]:
-        """Yield answer tokens one-by-one as they arrive from NVIDIA NIM."""
+        """Yield answer tokens one-by-one as they arrive from NVIDIA NIM.
+
+        Key rotation only happens BEFORE the first token is yielded. Once the
+        user has seen partial output, retrying with another key would replay
+        the answer from scratch and produce garbled duplicated text — so we
+        propagate the error instead and let the caller surface it.
+        """
         target_model = model or self.model
         start_key_idx = 0
         last_error = None
+        yielded_any = False
 
         while start_key_idx < len(self._keys):
             try:
                 for idx, completion in self._find_working_client(
                     target_model, prompt, max_tokens, enable_thinking, reasoning_budget,
-                    timeout=30.0, start_key_idx=start_key_idx
+                    timeout=settings.nvidia_timeout_stream, start_key_idx=start_key_idx
                 ):
                     start_key_idx = idx - 1
                     for chunk in completion:
@@ -230,9 +243,16 @@ class NvidiaLLM:
                         if reasoning:
                             logger.debug(f"[thinking] {reasoning}")
                         if delta.content:
+                            yielded_any = True
                             yield delta.content
                     return
             except Exception as e:
+                if yielded_any:
+                    logger.error(
+                        f"NVIDIA stream failed MID-STREAM with key {start_key_idx + 1}: {e}. "
+                        "Not retrying — partial output already delivered."
+                    )
+                    raise
                 logger.warning(f"Error during stream execution with NVIDIA key {start_key_idx + 1}: {e}. Retrying next key.")
                 last_error = e
                 start_key_idx += 1

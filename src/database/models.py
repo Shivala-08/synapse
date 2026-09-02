@@ -111,7 +111,8 @@ class GraphNode(Base):
     node_id = Column(String(255), primary_key=True)
     node_type = Column(String(100), nullable=False)
     doc_id = Column(String(255), ForeignKey("documents.doc_id", ondelete="SET NULL"), nullable=True)
-    attributes_json = Column(Text, nullable=False, default="{}") # JSON-serialized string
+    domain_id = Column(String(100), nullable=True, index=True)  # scopes node to a domain
+    attributes_json = Column(Text, nullable=False, default="{}")  # JSON-serialized string
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -136,6 +137,7 @@ class GraphEdge(Base):
     source_id = Column(String(255), ForeignKey("graph_nodes.node_id", ondelete="CASCADE"), primary_key=True)
     target_id = Column(String(255), ForeignKey("graph_nodes.node_id", ondelete="CASCADE"), primary_key=True)
     relation = Column(String(100), primary_key=True)
+    domain_id = Column(String(100), nullable=True, index=True)  # scopes edge to a domain
     attributes_json = Column(Text, nullable=False, default="{}")
 
     __table_args__ = (
