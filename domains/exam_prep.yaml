@@ -1,0 +1,14 @@
+domain_id: exam_prep
+display_name: "Exam Prep"
+source_path: "/absolute/path/to/exam-materials"
+source_types: [".pdf", ".docx", ".txt"]
+collection_name: "exam_prep_vectors"
+graph_file: "data/exam_prep_knowledge_graph.json"
+entity_types:
+  - Subject
+  - Topic
+  - Formula
+  - PastQuestion
+link_syntax: none             # no manual links, pure auto-extraction
+chunk_size: 1024
+chunk_overlap: 200

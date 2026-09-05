@@ -1,8 +1,31 @@
 # Root-level ignores for adhd-cure workspace
 # Subprojects have their own .gitignore (Rag-eco-hackathon/.gitignore, web/.gitignore)
 
-# Scratch / logs at workspace root
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+
+# Generated/derived data — never commit databases, caches, or vector indexes
+data/*.db
+data/*.db-journal
+data/semantic_cache.json
+data/knowledge_graph.json
+data/documents.json
+data/chroma_db/
+data/corpus/uploads/
+data/benchmarks/retrieval_log.json
+
+# Static JS (downloaded at build time)
+static/js/
+
+# Logs
 *.log
+backend.log
+
+# Scratch / logs at workspace root
 frontend.log
 frontend-smoke.log
 
@@ -24,7 +47,7 @@ Thumbs.db
 .env
 .env.local
 
-# Generated data (each subproject handles its own, but catch root-level too)
+# Generated data (root-level catch)
 data/
 benchmark-results/
 
