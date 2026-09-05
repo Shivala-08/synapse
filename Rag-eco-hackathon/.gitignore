@@ -1,0 +1,35 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.egg-info/
+dist/
+build/
+.venv/
+.DS_Store
+
+# Generated/derived data — never commit databases, caches, or vector indexes
+data/*.db
+data/*.db-journal
+data/semantic_cache.json
+data/knowledge_graph.json
+data/documents.json
+data/documents_*.json
+data/chroma_db/
+data/corpus/uploads/
+data/benchmarks/retrieval_log.json
+
+# Logs
+*.log
+backend.log
+frontend.log
+
+# Static JS (downloaded at build time)
+static/js/
+
+# Node / Next.js
+node_modules/
+web/.next/
+web/out/
+web/tsconfig.tsbuildinfo
+.vercel

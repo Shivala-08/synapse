@@ -1,0 +1,15 @@
+domain_id: exam_prep
+display_name: "Study Materials"
+source_path: "second-brain/raw"   # relative to workspace root (ADHD_CURE_ROOT) or absolute
+source_types: [".pdf", ".docx", ".txt", ".pptx", ".md"]
+collection_name: "exam_prep_vectors"
+graph_file: "data/exam_prep_knowledge_graph.json"
+entity_types:
+  - DatabaseConcept
+  - SQLCommand
+  - ProgrammingLanguage
+  - Framework
+  - APIEndpoint
+link_syntax: none
+chunk_size: 1024
+chunk_overlap: 128

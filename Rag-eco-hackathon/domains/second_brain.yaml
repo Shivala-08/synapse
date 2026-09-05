@@ -1,0 +1,15 @@
+domain_id: second_brain
+display_name: "Second Brain"
+source_path: "second-brain/wiki"   # relative to workspace root (ADHD_CURE_ROOT) or absolute
+source_types: [".md"]
+collection_name: "second_brain_vectors"
+graph_file: "data/second_brain_knowledge_graph.json"
+entity_types:
+  - Project
+  - TechStack
+  - BugFix
+  - APIIntegration
+  - Decision
+link_syntax: wikilink        # triggers [[Note Name]] parsing in extractor.py
+chunk_size: 512              # notes are short; smaller chunks than industrial 1024
+chunk_overlap: 100

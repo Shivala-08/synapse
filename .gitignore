@@ -1,0 +1,43 @@
+# Root-level ignores for adhd-cure workspace
+# Subprojects have their own .gitignore (Rag-eco-hackathon/.gitignore, web/.gitignore)
+
+# Scratch / logs at workspace root
+*.log
+frontend.log
+frontend-smoke.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated/scratch docs
+*.tmp
+*.bak
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env (repo ships with .env.example only)
+.env
+.env.local
+
+# Generated data (each subproject handles its own, but catch root-level too)
+data/
+benchmark-results/
+
+# Agent TUI runtime state
+second-brain-agent/.tsbuildinfo
+second-brain-agent/state.json
+second-brain-agent/dist/
+
+# Second Brain vault — local Obsidian config, generated output, logs
+second-brain/.obsidian/
+second-brain/output/
+second-brain/logs/
+
+# node_modules in any subproject
+node_modules/
+**/node_modules/

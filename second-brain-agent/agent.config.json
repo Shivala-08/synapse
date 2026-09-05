@@ -1,0 +1,14 @@
+{
+  "model": "minimax/minimax-m2.7:free",
+  "maxSteps": 30,
+  "maxCost": 0,
+  "vaultDir": "../second-brain",
+  "approvalPolicy": "dangerous-only",
+  "sessionDir": ".sessions",
+  "slashCommands": true,
+  "display": {
+    "toolDisplay": "grouped",
+    "reasoning": false,
+    "inputStyle": "block"
+  }
+}
