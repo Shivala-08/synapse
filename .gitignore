@@ -50,6 +50,9 @@ Thumbs.db
 # Generated data (root-level catch)
 data/
 benchmark-results/
+# Exception: pre-built ChromaDB index seeded into Docker image (root and subproject)
+!data/chroma_db/
+!Rag-eco-hackathon/data/chroma_db/
 
 # Agent TUI runtime state
 second-brain-agent/.tsbuildinfo
@@ -60,6 +63,9 @@ second-brain-agent/dist/
 second-brain/.obsidian/
 second-brain/output/
 second-brain/logs/
+
+# Old Streamlit-era src/ (replaced by Rag-eco-hackathon/src/ + web/)
+src/
 
 # node_modules in any subproject
 node_modules/

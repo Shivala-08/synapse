@@ -15,7 +15,8 @@ data/semantic_cache.json
 data/knowledge_graph.json
 data/documents.json
 data/documents_*.json
-data/chroma_db/
+# Exception: pre-built ChromaDB seed (tracked via LFS for Docker)
+!data/chroma_db/
 data/corpus/uploads/
 data/benchmarks/retrieval_log.json
 
