@@ -1,0 +1,6 @@
+{
+  "$schema": "https://railway.com/railtypes/service.json",
+  "name": "synapse-backend",
+  "dockerfilePath": "Rag-eco-hackathon/Dockerfile",
+  "sourceDirectory": "Rag-eco-hackathon"
+}
