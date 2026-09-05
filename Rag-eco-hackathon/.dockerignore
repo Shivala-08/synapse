@@ -1,18 +1,35 @@
-.venv/
-.pytest_cache/
-node_modules/
-data/temp_uploads/
-.env
-*.log
+# Python
 __pycache__/
 *.pyc
 *.pyo
+.env
+*.egg-info/
+dist/
+build/
+.venv/
 .DS_Store
-demo_screenshots/
-package-lock.json
-package.json
-Dockerfile
-.dockerignore
-task.md
-implementation_plan.md
-walkthrough.md
+
+# Generated data — but NOT chroma_db (needed as Docker seed)
+data/*.db
+data/*.db-journal
+data/semantic_cache.json
+data/knowledge_graph.json
+data/documents.json
+data/documents_*.json
+data/corpus/uploads/
+data/benchmarks/retrieval_log.json
+
+# Logs
+*.log
+backend.log
+frontend.log
+
+# Static JS
+static/js/
+
+# Node / Next.js
+node_modules/
+web/.next/
+web/out/
+web/tsconfig.tsbuildinfo
+.vercel
