@@ -1,0 +1,92 @@
+{
+  "_master-index.md": {
+    "doc_id": "_master-index.md",
+    "filename": "_master-index.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/_master-index.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.083163",
+    "chunk_count": 1,
+    "entities_found": 0
+  },
+  "campus-hub/_index.md": {
+    "doc_id": "campus-hub/_index.md",
+    "filename": "_index.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/campus-hub/_index.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.123625",
+    "chunk_count": 1,
+    "entities_found": 0
+  },
+  "campus-hub/campushub-fix-instructions.md": {
+    "doc_id": "campus-hub/campushub-fix-instructions.md",
+    "filename": "campushub-fix-instructions.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/campus-hub/campushub-fix-instructions.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.231377",
+    "chunk_count": 2,
+    "entities_found": 0
+  },
+  "jarvis/_index.md": {
+    "doc_id": "jarvis/_index.md",
+    "filename": "_index.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/jarvis/_index.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.282142",
+    "chunk_count": 1,
+    "entities_found": 0
+  },
+  "jarvis/cloud-model-layer.md": {
+    "doc_id": "jarvis/cloud-model-layer.md",
+    "filename": "cloud-model-layer.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/jarvis/cloud-model-layer.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.341556",
+    "chunk_count": 1,
+    "entities_found": 0
+  },
+  "jarvis/coding-agent.md": {
+    "doc_id": "jarvis/coding-agent.md",
+    "filename": "coding-agent.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/jarvis/coding-agent.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.403306",
+    "chunk_count": 1,
+    "entities_found": 0
+  },
+  "jarvis/graph-orchestrator.md": {
+    "doc_id": "jarvis/graph-orchestrator.md",
+    "filename": "graph-orchestrator.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/jarvis/graph-orchestrator.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.455250",
+    "chunk_count": 1,
+    "entities_found": 0
+  },
+  "jarvis/memory-system.md": {
+    "doc_id": "jarvis/memory-system.md",
+    "filename": "memory-system.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/jarvis/memory-system.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.515931",
+    "chunk_count": 1,
+    "entities_found": 0
+  },
+  "synapse/_index.md": {
+    "doc_id": "synapse/_index.md",
+    "filename": "_index.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/synapse/_index.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.555479",
+    "chunk_count": 1,
+    "entities_found": 0
+  },
+  "synapse/architecture.md": {
+    "doc_id": "synapse/architecture.md",
+    "filename": "architecture.md",
+    "file_path": "/Users/pallav/Desktop/Adhd-cure/second-brain/wiki/synapse/architecture.md",
+    "type": "md",
+    "upload_date": "2026-09-05T12:05:37.642564",
+    "chunk_count": 2,
+    "entities_found": 0
+  }
+}
