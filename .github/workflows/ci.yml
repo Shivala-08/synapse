@@ -37,10 +37,7 @@ jobs:
           OPENAI_API_KEY: mock-key
           NVIDIA_API_KEY_1: mock-key
         run: |
-          echo "PYTHONPATH=$PYTHONPATH"
-          echo "PWD=$PWD"
-          ls -la
-          PYTHONPATH=. pytest tests/ -v --tb=long --ignore=tests/test_llm.py 2>&1 | tail -40
+          PYTHONPATH=. pytest tests/ -v --tb=short --ignore=tests/test_llm.py
 
   typescript-check:
     runs-on: ubuntu-latest
@@ -73,10 +70,8 @@ jobs:
 
       - name: Install web deps
         working-directory: Rag-eco-hackathon/web
-        run: |
-          echo "PWD=$PWD"
-          npm ci --verbose 2>&1 | tail -20
+        run: npm ci
 
       - name: Type-check web
         working-directory: Rag-eco-hackathon/web
-        run: npx tsc --noEmit -p tsconfig.ci.json
+        run: ./node_modules/.bin/tsc --noEmit -p tsconfig.ci.json
