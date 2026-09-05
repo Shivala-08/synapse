@@ -1,6 +1,1 @@
-{
-  "$schema": "https://railway.com/railtypes/service.json",
-  "name": "synapse-backend",
-  "dockerfilePath": "Dockerfile",
-  "sourceDirectory": "."
-}
+{"$schema": "https://railway.com/railtypes/service.json", "name": "synapse-backend", "dockerfilePath": "Dockerfile", "sourceDirectory": "."}
