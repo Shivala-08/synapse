@@ -40,10 +40,6 @@ RUN python -m spacy download en_core_web_sm
 # Copy application files
 COPY . /app/
 
-# Pull Git LFS objects so chroma_db/, PDFs, and PPTX are real binaries
-# instead of 1KB pointer files. The .git directory from COPY makes this work.
-RUN git lfs pull
-
 # Healthcheck: Railway/Render health probes and `docker ps` both use this.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD curl -fsS http://localhost:${PORT:-8000}/health || exit 1
