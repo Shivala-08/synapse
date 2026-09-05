@@ -79,4 +79,4 @@ jobs:
 
       - name: Type-check web
         working-directory: Rag-eco-hackathon/web
-        run: npx tsc --noEmit
+        run: npx tsc --noEmit -p tsconfig.ci.json
