@@ -49,7 +49,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 # persistent volume is empty, so the pre-built ChromaDB index is available
 # without rebuilding embeddings from scratch.
 RUN mkdir -p /app/data_seed && \
-    cp -r /app/data/* /app/data_seed/ || true
+    cp -r /app/data/chroma_db /app/data_seed/ 2>/dev/null || true
 
 # Expose port
 EXPOSE 8000

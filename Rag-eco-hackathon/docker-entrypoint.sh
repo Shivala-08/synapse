@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Ensure Python can find the src package
+export PYTHONPATH=/app:${PYTHONPATH:-}
+
 # Sync seed data if ChromaDB is not present in the target data directory
 if [ ! -f /app/data/chroma_db/chroma.sqlite3 ]; then
   echo "ChromaDB SQLite index not found in /app/data. Seeding from pre-built database..."
