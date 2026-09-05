@@ -17,9 +17,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     curl \
     tesseract-ocr \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements.txt
+# Install git-lfs so the Docker build can resolve LFS-tracked files
+# (chroma_db/, PDFs, PPTX) from the Git repository into real binaries.
+RUN curl -sSL https://github.com/git-lfs/git-lfs/releases/download/v3.6.1/git-lfs-linux-amd64-v3.6.1.tar.gz | tar -xz -C /tmp \
+    && mv /tmp/git-lfs-3.6.1/git-lfs /usr/local/bin/ \
+    && git lfs install --system
+
+# Copy requirements.txt first for layer caching
 COPY requirements.txt /app/
 
 # Install Python dependencies
@@ -30,24 +37,26 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # means entity extraction dies at runtime with zero build-time signal.
 RUN python -m spacy download en_core_web_sm
 
-
 # Copy application files
 COPY . /app/
 
-# Healthcheck: Render/FaaS orchestrators and `docker ps` both use this.
+# Pull Git LFS objects so chroma_db/, PDFs, and PPTX are real binaries
+# instead of 1KB pointer files. The .git directory from COPY makes this work.
+RUN git lfs pull
+
+# Healthcheck: Railway/Render health probes and `docker ps` both use this.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD curl -fsS http://localhost:${PORT:-8000}/health || exit 1
 
-# Create a seed directory for persistent data volumes
+# Create a seed directory for persistent data volumes.
+# The entrypoint copies data_seed/ -> /app/data/ on first boot when the
+# persistent volume is empty, so the pre-built ChromaDB index is available
+# without rebuilding embeddings from scratch.
 RUN mkdir -p /app/data_seed && \
     cp -r /app/data/* /app/data_seed/ || true
-
-# Copy and configure entrypoint script
-COPY docker-entrypoint.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 8000
 
-# Entrypoint runs volume initialization and starts Uvicorn
+# Entrypoint seeds data (if needed) and starts Uvicorn
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

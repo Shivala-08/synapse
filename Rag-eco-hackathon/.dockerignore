@@ -1,5 +1,4 @@
 .venv/
-.git/
 .pytest_cache/
 node_modules/
 data/temp_uploads/
